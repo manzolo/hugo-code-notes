@@ -1,0 +1,71 @@
+{{- $src := .Get "src" -}}
+{{- $alt := .Get "alt" | default "" -}}
+{{- $caption := .Get "caption" | default "" -}}
+{{- $class := .Get "class" | default "" -}}
+{{- $loading := .Get "loading" | default "lazy" -}}
+{{- $width := .Get "width" -}}
+{{- $height := .Get "height" -}}
+
+{{- if not $src -}}
+  {{- errorf "Missing 'src' parameter for figure shortcode" -}}
+{{- end -}}
+
+<figure class="figure {{ $class }}">
+  <img 
+    src="{{ $src | relURL }}" 
+    alt="{{ $alt }}"
+    loading="{{ $loading }}"
+    {{- if $width }} width="{{ $width }}"{{ end -}}
+    {{- if $height }} height="{{ $height }}"{{ end -}}
+    class="figure-img"
+  />
+  {{- if $caption -}}
+  <figcaption class="figure-caption">{{ $caption | markdownify }}</figcaption>
+  {{- end -}}
+</figure>
+
+<style>
+.figure {
+  margin: 2rem 0;
+  text-align: center;
+}
+
+.figure-img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.figure-img:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.figure-caption {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--secondary);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+[data-theme="dark"] .figure-img {
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .figure-img:hover {
+  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 768px) {
+  .figure {
+    margin: 1.5rem -1rem;
+  }
+  
+  .figure-img {
+    border-radius: 0;
+  }
+}
+</style>

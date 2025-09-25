@@ -1,0 +1,679 @@
+{{- define "main" }}
+<article class="post-single">
+  <header class="post-header">
+    <h1 class="post-title">{{ .Title }}</h1>
+    {{- if .Description }}
+    <div class="post-description">{{ .Description }}</div>
+    {{- end }}
+  </header>
+
+  <div class="post-content">
+    {{ .Content }}
+
+    <!-- Filter Controls -->
+    <div class="archive-filters">
+      <div class="filter-section">
+        <label for="categorySelect">Filter by Category:</label>
+        <select id="categorySelect" class="filter-select">
+          <option value="">All Categories</option>
+          {{- range .Site.Taxonomies.categories }}
+          <option value="{{ .Page.Title }}">{{ .Page.Title | title }} ({{ .Count }})</option>
+          {{- end }}
+        </select>
+      </div>
+
+      <div class="filter-section">
+        <label for="tagSelect">Filter by Tag:</label>
+        <select id="tagSelect" class="filter-select">
+          <option value="">All Tags</option>
+          {{- range first 20 .Site.Taxonomies.tags.ByCount }}
+          <option value="{{ .Page.Title }}">{{ .Page.Title | title }} ({{ .Count }})</option>
+          {{- end }}
+        </select>
+      </div>
+
+      <div class="filter-section">
+        <label for="sortSelect">Sort by:</label>
+        <select id="sortSelect" class="filter-select">
+          <option value="date-desc">Date (Newest)</option>
+          <option value="date-asc">Date (Oldest)</option>
+          <option value="title">Title A-Z</option>
+          <option value="title-desc">Title Z-A</option>
+        </select>
+      </div>
+
+      <div class="filter-section">
+        <input type="text" id="searchPosts" placeholder="Search posts..." class="search-filter">
+      </div>
+
+      <button id="clearFilters" class="clear-filters">Clear All Filters</button>
+    </div>
+
+    <!-- Archive Statistics -->
+    <div class="archive-stats">
+      <div class="stat-item">
+        <span class="stat-number">{{ len (where .Site.RegularPages "Type" "posts") }}</span>
+        <span class="stat-label">Total Posts</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ len .Site.Taxonomies.categories }}</span>
+        <span class="stat-label">Categories</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ len .Site.Taxonomies.tags }}</span>
+        <span class="stat-label">Tags</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number" id="visiblePosts">{{ len (where .Site.RegularPages "Type" "posts") }}</span>
+        <span class="stat-label">Showing</span>
+      </div>
+    </div>
+
+    <!-- Posts by Year -->
+    <div class="archive-timeline" id="archiveTimeline">
+      {{- range (.Site.RegularPages.GroupByDate "2006") }}
+      {{- $year := .Key }}
+      <div class="year-group" data-year="{{ $year }}">
+        <h2 class="year-header">
+          <span class="year-number">{{ $year }}</span>
+          <span class="year-count">({{ len .Pages }} posts)</span>
+        </h2>
+        
+        <div class="posts-grid">
+          {{- range .Pages }}
+          {{- if eq .Type "posts" }}
+          <article class="archive-post" 
+                   data-title="{{ .Title | lower }}"
+                   data-categories="{{ delimit .Params.categories "," | lower }}"
+                   data-tags="{{ delimit .Params.tags "," | lower }}"
+                   data-date="{{ .Date.Format "2006-01-02" }}">
+            <div class="post-card">
+              <div class="post-date">
+                <time datetime="{{ .Date.Format "2006-01-02" }}">
+                  {{ .Date.Format "Jan 02" }}
+                </time>
+              </div>
+              
+              <div class="post-info">
+                <h3 class="post-title">
+                  <a href="{{ .Permalink }}">{{ .Title }}</a>
+                </h3>
+                
+                {{- if .Description }}
+                <p class="post-summary">{{ .Description | truncate 120 }}</p>
+                {{- else if .Summary }}
+                <p class="post-summary">{{ .Summary | truncate 120 }}</p>
+                {{- end }}
+                
+                <div class="post-meta">
+                  {{- if .Params.categories }}
+                  <div class="post-categories">
+                    {{- range first 2 .Params.categories }}
+                    <span class="category-tag">{{ . | title }}</span>
+                    {{- end }}
+                  </div>
+                  {{- end }}
+                  
+                  {{- if .Params.tags }}
+                  <div class="post-tags">
+                    {{- range first 3 .Params.tags }}
+                    <span class="tag">{{ . }}</span>
+                    {{- end }}
+                    {{- if gt (len .Params.tags) 3 }}
+                    <span class="tag-more">+{{ sub (len .Params.tags) 3 }} more</span>
+                    {{- end }}
+                  </div>
+                  {{- end }}
+                  
+                  <div class="reading-time">
+                    {{- if .ReadingTime }}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12,6 12,12 16,14"></polyline>
+                    </svg>
+                    {{ .ReadingTime }} min read
+                    {{- end }}
+                  </div>
+                </div>
+              </div>
+              
+              <div class="post-arrow">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9,18 15,12 9,6"></polyline>
+                </svg>
+              </div>
+            </div>
+          </article>
+          {{- end }}
+          {{- end }}
+        </div>
+      </div>
+      {{- end }}
+    </div>
+
+    <!-- No Results Message -->
+    <div id="noResults" class="no-results" style="display: none;">
+      <div class="no-results-icon">📭</div>
+      <h3>No posts found</h3>
+      <p>Try adjusting your filters or search terms.</p>
+    </div>
+  </div>
+</article>
+
+<!-- Archive CSS -->
+<style>
+.archive-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 2rem;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-section label {
+  font-weight: 600;
+  color: var(--content);
+  font-size: 0.9rem;
+}
+
+.filter-select, .search-filter {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--theme);
+  color: var(--content);
+  font-size: 0.95rem;
+}
+
+.filter-select:focus, .search-filter:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb, 0, 100, 200), 0.1);
+}
+
+.clear-filters {
+  padding: 0.75rem 1.5rem;
+  background: var(--primary);
+  color: var(--theme);
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  align-self: end;
+}
+
+.clear-filters:hover {
+  background: var(--primary-dark, var(--primary));
+  transform: translateY(-2px);
+}
+
+.archive-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--code-bg);
+  border-radius: 12px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1rem;
+}
+
+.stat-number {
+  display: block;
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--primary);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--secondary);
+  margin-top: 0.5rem;
+  display: block;
+}
+
+.year-group {
+  margin-bottom: 3rem;
+}
+
+.year-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--primary);
+  position: relative;
+}
+
+.year-number {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--primary);
+  line-height: 1;
+}
+
+.year-count {
+  font-size: 1rem;
+  color: var(--secondary);
+  font-weight: 500;
+}
+
+.posts-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.archive-post {
+  transition: all 0.3s ease;
+}
+
+.archive-post.hidden {
+  display: none;
+}
+
+.post-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1.5rem;
+  align-items: center;
+  padding: 1.5rem;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.post-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  border-color: var(--primary);
+}
+
+.post-date {
+  min-width: 60px;
+  text-align: center;
+}
+
+.post-date time {
+  display: block;
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.post-info {
+  flex: 1;
+}
+
+.post-title {
+  margin: 0 0 0.5rem 0;
+  line-height: 1.3;
+}
+
+.post-title a {
+  color: var(--content);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.2rem;
+  transition: color 0.3s ease;
+}
+
+.post-title a:hover {
+  color: var(--primary);
+}
+
+.post-summary {
+  color: var(--secondary);
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.post-categories, .post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.category-tag {
+  padding: 0.25rem 0.75rem;
+  background: var(--primary);
+  color: var(--theme);
+  border-radius: 16px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.tag {
+  padding: 0.25rem 0.5rem;
+  background: var(--code-bg);
+  color: var(--secondary);
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.tag-more {
+  color: var(--secondary);
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+.reading-time {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--secondary);
+}
+
+.post-arrow {
+  color: var(--secondary);
+  transition: all 0.3s ease;
+}
+
+.post-card:hover .post-arrow {
+  color: var(--primary);
+  transform: translateX(4px);
+}
+
+.no-results {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--secondary);
+}
+
+.no-results-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.no-results h3 {
+  color: var(--content);
+  margin-bottom: 0.5rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.archive-post {
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .archive-filters {
+    grid-template-columns: 1fr;
+    padding: 1.5rem;
+  }
+  
+  .archive-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .post-card {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .post-date {
+    order: -1;
+  }
+  
+  .post-arrow {
+    display: none;
+  }
+  
+  .year-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .year-number {
+    font-size: 2rem;
+  }
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .post-card:hover {
+  box-shadow: 0 8px 25px rgba(255,255,255,0.1);
+}
+
+/* Smooth transitions for filtering */
+.archive-post {
+  transition: all 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+}
+
+.archive-post.filtering-out {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+/* Loading state */
+.archive-loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--secondary);
+}
+
+.archive-loading::after {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top: 2px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-left: 0.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+
+<!-- Archive JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const categorySelect = document.getElementById('categorySelect');
+  const tagSelect = document.getElementById('tagSelect');
+  const sortSelect = document.getElementById('sortSelect');
+  const searchInput = document.getElementById('searchPosts');
+  const clearFilters = document.getElementById('clearFilters');
+  const visiblePostsCounter = document.getElementById('visiblePosts');
+  const noResults = document.getElementById('noResults');
+  const archiveTimeline = document.getElementById('archiveTimeline');
+  
+  let allPosts = [];
+  let filteredPosts = [];
+  
+  // Initialize
+  function init() {
+    allPosts = Array.from(document.querySelectorAll('.archive-post'));
+    filteredPosts = [...allPosts];
+    updateVisibleCount();
+  }
+  
+  // Filter functions
+  function filterPosts() {
+    const category = categorySelect.value.toLowerCase();
+    const tag = tagSelect.value.toLowerCase();
+    const searchTerm = searchInput.value.toLowerCase();
+    
+    filteredPosts = allPosts.filter(post => {
+      const postCategories = post.dataset.categories || '';
+      const postTags = post.dataset.tags || '';
+      const postTitle = post.dataset.title || '';
+      
+      // Category filter
+      if (category && !postCategories.includes(category)) {
+        return false;
+      }
+      
+      // Tag filter
+      if (tag && !postTags.includes(tag)) {
+        return false;
+      }
+      
+      // Search filter
+      if (searchTerm) {
+        const searchableText = `${postTitle} ${postCategories} ${postTags}`;
+        if (!searchableText.includes(searchTerm)) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+    
+    displayPosts();
+    updateVisibleCount();
+    checkEmptyResults();
+  }
+  
+  function sortPosts() {
+    const sortBy = sortSelect.value;
+    
+    switch(sortBy) {
+      case 'date-asc':
+        filteredPosts.sort((a, b) => new Date(a.dataset.date) - new Date(b.dataset.date));
+        break;
+      case 'title':
+        filteredPosts.sort((a, b) => a.dataset.title.localeCompare(b.dataset.title));
+        break;
+      case 'title-desc':
+        filteredPosts.sort((a, b) => b.dataset.title.localeCompare(a.dataset.title));
+        break;
+      case 'date-desc':
+      default:
+        filteredPosts.sort((a, b) => new Date(b.dataset.date) - new Date(a.dataset.date));
+        break;
+    }
+    
+    displayPosts();
+  }
+  
+  function displayPosts() {
+    // Hide all posts first
+    allPosts.forEach(post => {
+      post.classList.add('hidden');
+      post.style.display = 'none';
+    });
+    
+    // Show filtered posts
+    filteredPosts.forEach((post, index) => {
+      post.classList.remove('hidden');
+      post.style.display = 'block';
+      post.style.animationDelay = `${index * 0.1}s`;
+    });
+    
+    // Update year headers
+    updateYearHeaders();
+  }
+  
+  function updateYearHeaders() {
+    const yearGroups = document.querySelectorAll('.year-group');
+    
+    yearGroups.forEach(yearGroup => {
+      const visiblePosts = yearGroup.querySelectorAll('.archive-post:not(.hidden)');
+      const yearCount = yearGroup.querySelector('.year-count');
+      
+      if (visiblePosts.length === 0) {
+        yearGroup.style.display = 'none';
+      } else {
+        yearGroup.style.display = 'block';
+        if (yearCount) {
+          yearCount.textContent = `(${visiblePosts.length} post${visiblePosts.length !== 1 ? 's' : ''})`;
+        }
+      }
+    });
+  }
+  
+  function updateVisibleCount() {
+    visiblePostsCounter.textContent = filteredPosts.length;
+  }
+  
+  function checkEmptyResults() {
+    if (filteredPosts.length === 0) {
+      noResults.style.display = 'block';
+      archiveTimeline.style.display = 'none';
+    } else {
+      noResults.style.display = 'none';
+      archiveTimeline.style.display = 'block';
+    }
+  }
+  
+  function clearAllFilters() {
+    categorySelect.value = '';
+    tagSelect.value = '';
+    searchInput.value = '';
+    sortSelect.value = 'date-desc';
+    
+    filteredPosts = [...allPosts];
+    sortPosts();
+    updateVisibleCount();
+    checkEmptyResults();
+  }
+  
+  // Event listeners
+  categorySelect.addEventListener('change', filterPosts);
+  tagSelect.addEventListener('change', filterPosts);
+  sortSelect.addEventListener('change', () => {
+    filterPosts();
+    sortPosts();
+  });
+  
+  searchInput.addEventListener('input', debounce(filterPosts, 300));
+  clearFilters.addEventListener('click', clearAllFilters);
+  
+  // Debounce function for search
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+  
+  // Initialize the archive
+  init();
+});
+</script>
+
+{{- end }}

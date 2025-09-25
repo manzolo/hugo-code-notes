@@ -1,0 +1,189 @@
+name: Deploy Hugo Blog
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+# Permissions necessarie per GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Cancella job precedenti se ne viene avviato uno nuovo
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+# Variabili globali
+env:
+  HUGO_VERSION: 0.150.0
+  NODE_VERSION: 18
+
+jobs:
+  # Job di build e test
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: 🏗️ Setup Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: ${{ env.HUGO_VERSION }}
+          extended: true
+
+      - name: 🏗️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: |
+          npm ci || npm install
+          
+      - name: 🧪 Run tests
+        run: |
+          # Test che il sito si buildi senza errori
+          hugo --buildDrafts=false --buildFuture=false --quiet
+          echo "✅ Build test passed"
+
+      - name: 🔍 Lint markdown files
+        run: |
+          if command -v markdownlint >/dev/null 2>&1; then
+            markdownlint content/**/*.md || echo "⚠️ Markdown linting warnings"
+          else
+            echo "⚠️ markdownlint not available, skipping"
+          fi
+
+      - name: 🔨 Build production site
+        run: |
+          hugo --minify --gc --baseURL "${{ steps.pages.outputs.base_url || 'https://appunti-codice.netlify.app' }}"
+
+      - name: 📊 Site statistics
+        run: |
+          echo "📊 Build Statistics:"
+          echo "- Posts: $(find content -name "*.md" -type f | wc -l)"
+          echo "- Build size: $(du -sh public | cut -f1)"
+          echo "- Files generated: $(find public -type f | wc -l)"
+
+      - name: 💾 Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hugo-site
+          path: public/
+          retention-days: 30
+
+  # Job per deploy su GitHub Pages (solo su main/master)
+  deploy-github-pages:
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 📥 Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: hugo-site
+          path: public/
+
+      - name: 🏗️ Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: 📤 Upload to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public/
+
+      - name: 🚀 Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # Job per deploy su Netlify (alternativo/parallelo)
+  deploy-netlify:
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: hugo-site
+          path: public/
+
+      - name: 🚀 Deploy to Netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: './public'
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions"
+          enable-pull-request-comment: true
+          enable-commit-comment: true
+          overwrites-pull-request-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+  # Job per controllo qualità del codice
+  quality-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔍 Lint YAML files
+        uses: karancode/yamllint-github-action@master
+        with:
+          yamllint_file_or_dir: 'config.yml docker compose.yml .github/workflows/'
+          yamllint_strict: false
+
+      - name: 🔍 Check broken links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          use-verbose-mode: 'yes'
+          config-file: '.github/workflows/markdown-link-check-config.json'
+
+  # Job per aggiornamento automatico dipendenze
+  dependency-update:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔄 Update Hugo version
+        run: |
+          LATEST_HUGO=$(curl -s https://api.github.com/repos/gohugoio/hugo/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/v//')
+          echo "Latest Hugo version: $LATEST_HUGO"
+          # Aggiorna nei file necessari
+          sed -i "s/HUGO_VERSION: .*/HUGO_VERSION: $LATEST_HUGO/" .github/workflows/deploy.yml
+          sed -i "s/hugomods\/hugo:go-.*/hugomods\/hugo:go-$LATEST_HUGO/" docker compose.yml Makefile
+
+      - name: 📤 Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: update Hugo version'
+          title: 'chore: update Hugo version'
+          body: |
+            Aggiornamento automatico della versione Hugo.
+            
+            - ⬆️ Hugo aggiornato all'ultima versione
+            - 🔄 Files aggiornati: docker compose.yml, Makefile, deploy.yml
+          branch: update/hugo-version

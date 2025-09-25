@@ -1,0 +1,143 @@
+{{- $type := .Get "type" | default "info" -}}
+{{- $title := .Get "title" | default "" -}}
+
+{{- $icons := dict 
+    "info" "ℹ️"
+    "tip" "💡"
+    "warning" "⚠️"
+    "danger" "🚨"
+    "note" "📝"
+    "success" "✅"
+    "error" "❌"
+-}}
+
+{{- $colors := dict 
+    "info" "blue"
+    "tip" "green"
+    "warning" "yellow"
+    "danger" "red"
+    "note" "purple"
+    "success" "green"
+    "error" "red"
+-}}
+
+{{- $icon := index $icons $type | default "ℹ️" -}}
+{{- $color := index $colors $type | default "blue" -}}
+
+<div class="callout callout--{{ $color }}" role="alert">
+  <div class="callout-header">
+    <span class="callout-icon">{{ $icon }}</span>
+    {{- if $title -}}
+    <span class="callout-title">{{ $title }}</span>
+    {{- else -}}
+    <span class="callout-title">{{ $type | title }}</span>
+    {{- end -}}
+  </div>
+  <div class="callout-content">
+    {{ .Inner | markdownify }}
+  </div>
+</div>
+
+<style>
+.callout {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid;
+  background-color: var(--callout-bg);
+  border-color: var(--callout-border);
+}
+
+.callout-header {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.callout-icon {
+  margin-right: 0.5rem;
+  font-size: 1.1em;
+}
+
+.callout-title {
+  text-transform: uppercase;
+  font-size: 0.85em;
+  letter-spacing: 0.5px;
+}
+
+.callout-content {
+  margin: 0;
+}
+
+.callout-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Tema chiaro */
+:root {
+  --callout-blue-bg: #e3f2fd;
+  --callout-blue-border: #2196f3;
+  --callout-green-bg: #e8f5e8;
+  --callout-green-border: #4caf50;
+  --callout-yellow-bg: #fff8e1;
+  --callout-yellow-border: #ff9800;
+  --callout-red-bg: #ffebee;
+  --callout-red-border: #f44336;
+  --callout-purple-bg: #f3e5f5;
+  --callout-purple-border: #9c27b0;
+}
+
+/* Tema scuro */
+[data-theme="dark"] {
+  --callout-blue-bg: #0d47a1;
+  --callout-blue-border: #42a5f5;
+  --callout-green-bg: #1b5e20;
+  --callout-green-border: #66bb6a;
+  --callout-yellow-bg: #e65100;
+  --callout-yellow-border: #ffb74d;
+  --callout-red-bg: #b71c1c;
+  --callout-red-border: #ef5350;
+  --callout-purple-bg: #4a148c;
+  --callout-purple-border: #ba68c8;
+}
+
+.callout--blue {
+  --callout-bg: var(--callout-blue-bg);
+  --callout-border: var(--callout-blue-border);
+  color: var(--callout-blue-border);
+}
+
+.callout--green {
+  --callout-bg: var(--callout-green-bg);
+  --callout-border: var(--callout-green-border);
+  color: var(--callout-green-border);
+}
+
+.callout--yellow {
+  --callout-bg: var(--callout-yellow-bg);
+  --callout-border: var(--callout-yellow-border);
+  color: var(--callout-yellow-border);
+}
+
+.callout--red {
+  --callout-bg: var(--callout-red-bg);
+  --callout-border: var(--callout-red-border);
+  color: var(--callout-red-border);
+}
+
+.callout--purple {
+  --callout-bg: var(--callout-purple-bg);
+  --callout-border: var(--callout-purple-border);
+  color: var(--callout-purple-border);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .callout {
+    margin: 1rem -1rem;
+    border-radius: 0;
+    padding: 1rem;
+  }
+}
+</style>

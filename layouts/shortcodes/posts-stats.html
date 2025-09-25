@@ -1,0 +1,402 @@
+{{- $posts := where .Site.RegularPages "Type" "posts" -}}
+{{- $totalPosts := len $posts -}}
+{{- $totalWords := 0 -}}
+{{- $totalReadingTime := 0 -}}
+{{- range $posts -}}
+  {{- $totalWords = add $totalWords .WordCount -}}
+  {{- $totalReadingTime = add $totalReadingTime .ReadingTime -}}
+{{- end -}}
+
+{{- $categories := len .Site.Taxonomies.categories -}}
+{{- $tags := len .Site.Taxonomies.tags -}}
+{{- $avgWordsPerPost := 0 -}}
+{{- $avgReadingTime := 0 -}}
+
+{{- if gt $totalPosts 0 -}}
+  {{- $avgWordsPerPost = div $totalWords $totalPosts -}}
+  {{- $avgReadingTime = div $totalReadingTime $totalPosts -}}
+{{- end -}}
+
+<div class="posts-stats">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">📝</div>
+      <div class="stat-info">
+        <div class="stat-number">{{ $totalPosts }}</div>
+        <div class="stat-label">Total Posts</div>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">📚</div>
+      <div class="stat-info">
+        <div class="stat-number">{{ $categories }}</div>
+        <div class="stat-label">Categories</div>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">🏷️</div>
+      <div class="stat-info">
+        <div class="stat-number">{{ $tags }}</div>
+        <div class="stat-label">Tags</div>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">📖</div>
+      <div class="stat-info">
+        <div class="stat-number">{{ $totalReadingTime }}</div>
+        <div class="stat-label">Total Reading Minutes</div>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">✍️</div>
+      <div class="stat-info">
+        <div class="stat-number">{{ $totalWords | printf "%d" }}</div>
+        <div class="stat-label">Total Words</div>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">⏱️</div>
+      <div class="stat-info">
+        <div class="stat-number">{{ $avgReadingTime }}</div>
+        <div class="stat-label">Avg. Reading Time</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="recent-activity">
+    <h3>Recent Activity</h3>
+    <div class="activity-list">
+      {{- range first 5 (sort $posts "Date" "desc") }}
+      <div class="activity-item">
+        <div class="activity-date">
+          <time datetime="{{ .Date.Format "2006-01-02" }}">
+            {{ .Date.Format "Jan 02" }}
+          </time>
+        </div>
+        <div class="activity-content">
+          <a href="{{ .Permalink }}" class="activity-title">{{ .Title }}</a>
+          <div class="activity-meta">
+            {{- if .Params.categories }}
+            <span class="activity-category">{{ index .Params.categories 0 | title }}</span>
+            {{- end }}
+            • {{ .ReadingTime }} min read
+          </div>
+        </div>
+      </div>
+      {{- end }}
+    </div>
+  </div>
+
+  <!-- Popular Categories -->
+  <div class="popular-categories">
+    <h3>Most Popular Categories</h3>
+    <div class="categories-chart">
+      {{- range first 6 .Site.Taxonomies.categories.ByCount }}
+      <div class="category-bar">
+        <div class="category-name">
+          <a href="{{ .Page.Permalink }}">{{ .Page.Title | title }}</a>
+        </div>
+        <div class="category-count">{{ .Count }} post{{ if ne .Count 1 }}s{{ end }}</div>
+        <div class="category-progress">
+          {{- $percentage := 0 -}}
+          {{- if gt $totalPosts 0 -}}
+            {{- $percentage = mul (div .Count $totalPosts) 100 -}}
+          {{- end -}}
+          <div class="progress-bar" style="width: {{ $percentage }}%"></div>
+        </div>
+      </div>
+      {{- end }}
+    </div>
+  </div>
+</div>
+
+<style>
+.posts-stats {
+  margin: 2rem 0;
+  padding: 2rem;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--theme);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  border-color: var(--primary);
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--primary);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--secondary);
+  margin-top: 0.25rem;
+}
+
+.recent-activity, .popular-categories {
+  margin-bottom: 2rem;
+}
+
+.recent-activity h3, .popular-categories h3 {
+  margin-bottom: 1rem;
+  color: var(--content);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--theme);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.activity-item:hover {
+  border-color: var(--primary);
+  transform: translateX(4px);
+}
+
+.activity-date {
+  min-width: 60px;
+  text-align: center;
+}
+
+.activity-date time {
+  font-weight: 600;
+  color: var(--primary);
+  font-size: 0.9rem;
+  display: block;
+  line-height: 1.2;
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-title {
+  color: var(--content);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.activity-title:hover {
+  color: var(--primary);
+}
+
+.activity-meta {
+  font-size: 0.85rem;
+  color: var(--secondary);
+}
+
+.activity-category {
+  padding: 0.2rem 0.5rem;
+  background: var(--primary);
+  color: var(--theme);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.categories-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.category-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  background: var(--theme);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.category-bar:hover {
+  border-color: var(--primary);
+}
+
+.category-name a {
+  color: var(--content);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.category-name a:hover {
+  color: var(--primary);
+}
+
+.category-count {
+  font-size: 0.9rem;
+  color: var(--secondary);
+  min-width: 80px;
+  text-align: right;
+}
+
+.category-progress {
+  grid-column: 1 / -1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light, var(--primary)) 100%);
+  border-radius: 2px;
+  transition: width 0.8s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .posts-stats {
+    padding: 1.5rem;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .stat-card {
+    padding: 1rem;
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .stat-icon {
+    font-size: 2rem;
+  }
+  
+  .stat-number {
+    font-size: 1.5rem;
+  }
+  
+  .activity-item {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+  
+  .activity-date {
+    order: -1;
+  }
+  
+  .category-bar {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  
+  .category-count {
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .stat-card:hover,
+[data-theme="dark"] .activity-item:hover,
+[data-theme="dark"] .category-bar:hover {
+  box-shadow: 0 8px 25px rgba(255,255,255,0.1);
+}
+
+/* Animation on load */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stat-card {
+  animation: slideInUp 0.6s ease-out;
+}
+
+.activity-item, .category-bar {
+  animation: slideInUp 0.6s ease-out;
+}
+
+/* Stagger animation delays */
+.stat-card:nth-child(2) { animation-delay: 0.1s; }
+.stat-card:nth-child(3) { animation-delay: 0.2s; }
+.stat-card:nth-child(4) { animation-delay: 0.3s; }
+.stat-card:nth-child(5) { animation-delay: 0.4s; }
+.stat-card:nth-child(6) { animation-delay: 0.5s; }
+
+.activity-item:nth-child(2) { animation-delay: 0.1s; }
+.activity-item:nth-child(3) { animation-delay: 0.2s; }
+.activity-item:nth-child(4) { animation-delay: 0.3s; }
+.activity-item:nth-child(5) { animation-delay: 0.4s; }
+
+.category-bar:nth-child(2) { animation-delay: 0.1s; }
+.category-bar:nth-child(3) { animation-delay: 0.2s; }
+.category-bar:nth-child(4) { animation-delay: 0.3s; }
+.category-bar:nth-child(5) { animation-delay: 0.4s; }
+.category-bar:nth-child(6) { animation-delay: 0.5s; }
+</style>
