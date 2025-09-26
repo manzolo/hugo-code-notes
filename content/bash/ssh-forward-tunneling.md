@@ -138,6 +138,122 @@ chmod +x ssh_tunnel.sh
 ./ssh_tunnel.sh
 ```
 
+## Port Forwarding
+
+Port forwarding with SSH comes in three main flavors: local, remote, and dynamic. Each serves a unique purpose for managing network access securely.
+
+### Local Forwarding
+
+As described above, local forwarding (`-L`) allows you to access internal services from your local machine through an SSH server. It’s ideal for securely connecting to resources in a private network.
+
+**Example**:
+```bash
+ssh -L 8080:internal.service:80 user@ssh.example.com
+```
+Access `http://localhost:8080` to reach `internal.service:80`.
+
+### Remote Forwarding
+
+Remote forwarding (`-R`) exposes a service running on your local machine (or a machine accessible by your local machine) to the SSH server or another machine reachable by the SSH server.
+
+**Syntax**:
+```bash
+ssh -R [remote_port]:[local_host]:[local_port] [user]@[ssh_server]
+```
+
+**Example**:
+```bash
+ssh -R 8080:localhost:3000 user@ssh.example.com
+```
+- **Explanation**: A service running on your local machine at `localhost:3000` becomes accessible on the SSH server at `ssh.example.com:8080`.
+- **Usage**: From the SSH server or another machine that can reach it, access the service at `http://ssh.example.com:8080`.
+
+### Dynamic Forwarding (SOCKS Proxy)
+
+Dynamic forwarding (`-D`) turns your SSH connection into a SOCKS proxy, acting like a mini-VPN. It allows you to route traffic dynamically through the SSH server without specifying a fixed destination host or port.
+
+**Syntax**:
+```bash
+ssh -D [local_port] [user]@[ssh_server]
+```
+
+**Example**:
+```bash
+ssh -D 1080 user@ssh.example.com
+```
+- **Explanation**: Creates a SOCKS proxy on `localhost:1080`. Configure your browser or application to use this proxy, and traffic will be routed through the SSH server.
+- **Usage**: Set your browser’s SOCKS proxy to `localhost:1080` to browse securely via the SSH server.
+
+### SSH as a VPN (Tunnel Layer 2 or 3)
+
+SSH can be used to create a VPN-like tunnel at the network layer (Layer 2 or 3) using tools like `sshuttle` or by configuring a TUN/TAP interface. This allows entire network traffic to be routed through the SSH server.
+
+**Example with sshuttle**:
+```bash
+sshuttle -r user@ssh.example.com 192.168.1.0/24
+```
+- **Explanation**: Routes traffic for the `192.168.1.0/24` subnet through the SSH server, effectively creating a VPN.
+
+### X11 Forwarding (GUI Remote)
+
+X11 forwarding allows you to run graphical applications on a remote server and display them on your local machine.
+
+**Syntax**:
+```bash
+ssh -X [user]@[ssh_server]
+```
+
+**Example**:
+```bash
+ssh -X user@ssh.example.com xterm
+```
+- **Explanation**: Runs the `xterm` application on the SSH server, but its GUI is displayed on your local machine.
+- **Prerequisite**: An X server (e.g., XQuartz on macOS or Xming on Windows) must be running locally.
+
+### Mounting a Remote Filesystem (sshfs)
+
+With `sshfs`, you can mount a remote filesystem locally over SSH, allowing you to interact with remote files as if they were on your machine.
+
+**Example**:
+```bash
+sshfs user@ssh.example.com:/remote/path /local/mountpoint
+```
+- **Explanation**: Mounts the `/remote/path` directory from the SSH server to `/local/mountpoint` on your local machine.
+- **Unmount**: Use `umount /local/mountpoint` to detach.
+
+Install `sshfs`:
+```bash
+sudo apt install sshfs  # Ubuntu/Debian
+```
+
+### Multiplexing Connections
+
+SSH multiplexing allows multiple sessions to share a single SSH connection, reducing overhead for multiple tunnels or commands.
+
+**Example Configuration** (`~/.ssh/config`):
+```bash
+Host ssh.example.com
+  ControlMaster auto
+  ControlPath ~/.ssh/mux-%r@%h:%p
+  ControlPersist 10m
+```
+
+**Usage**:
+```bash
+ssh user@ssh.example.com  # Opens master connection
+ssh user@ssh.example.com  # Reuses existing connection
+```
+
+### Reverse Shell Securely
+
+A reverse shell can be established using SSH remote forwarding to allow a remote machine to access a shell on your local machine securely.
+
+**Example**:
+```bash
+ssh -R 2222:localhost:22 user@ssh.example.com
+```
+- **Explanation**: From the SSH server, you can connect to `localhost:2222` to access your local machine’s SSH server (`localhost:22`).
+
 ## Pro Tips
 
 {{< callout type="tip" >}}
