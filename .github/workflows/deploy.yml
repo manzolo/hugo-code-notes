@@ -10,25 +10,27 @@ on:
       - main
       - master
   workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly (every Sunday at 00:00 UTC) for automatic updates
 
-# Permissions necessarie per GitHub Pages
+# Permissions needed for GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Cancella job precedenti se ne viene avviato uno nuovo
+# Cancel previous jobs if a new one is triggered
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
-# Variabili globali
+# Global variables
 env:
-  HUGO_VERSION: 0.150.0
+  HUGO_VERSION: 0.150.1
   NODE_VERSION: 18
 
 jobs:
-  # Job di build e test
+  # Build and test job
   build:
     runs-on: ubuntu-latest
     steps:
@@ -50,27 +52,22 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: 📦 Install dependencies
-        run: |
-          npm ci || npm install
-          
+      - name: 📦 Install markdownlint
+        run: npm install -g markdownlint-cli
+
       - name: 🧪 Run tests
         run: |
-          # Test che il sito si buildi senza errori
+          # Test that the site builds without errors
           hugo --buildDrafts=false --buildFuture=false --quiet
           echo "✅ Build test passed"
 
       - name: 🔍 Lint markdown files
         run: |
-          if command -v markdownlint >/dev/null 2>&1; then
-            markdownlint content/**/*.md || echo "⚠️ Markdown linting warnings"
-          else
-            echo "⚠️ markdownlint not available, skipping"
-          fi
+          markdownlint content/**/*.md || echo "⚠️ Markdown linting warnings"
 
       - name: 🔨 Build production site
         run: |
-          hugo --minify --gc --baseURL "${{ steps.pages.outputs.base_url || 'https://appunti-codice.netlify.app' }}"
+          hugo --minify --gc --baseURL "${{ steps.pages.outputs.base_url || 'https://www.manzolo.it/' }}"
 
       - name: 📊 Site statistics
         run: |
@@ -86,7 +83,7 @@ jobs:
           path: public/
           retention-days: 30
 
-  # Job per deploy su GitHub Pages (solo su main/master)
+  # Deploy to GitHub Pages (only on main/master)
   deploy-github-pages:
     needs: build
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
@@ -113,7 +110,7 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-  # Job per deploy su Netlify (alternativo/parallelo)
+  # Deploy to Netlify (alternative/parallel)
   deploy-netlify:
     needs: build
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
@@ -139,7 +136,7 @@ jobs:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
 
-  # Job per controllo qualità del codice
+  # Code quality check job
   quality-check:
     runs-on: ubuntu-latest
     steps:
@@ -149,7 +146,7 @@ jobs:
       - name: 🔍 Lint YAML files
         uses: karancode/yamllint-github-action@master
         with:
-          yamllint_file_or_dir: 'config.yml docker compose.yml .github/workflows/'
+          yamllint_file_or_dir: 'config.yml docker-compose.yml .github/workflows/'
           yamllint_strict: false
 
       - name: 🔍 Check broken links
@@ -157,9 +154,8 @@ jobs:
         with:
           use-quiet-mode: 'yes'
           use-verbose-mode: 'yes'
-          config-file: '.github/workflows/markdown-link-check-config.json'
 
-  # Job per aggiornamento automatico dipendenze
+  # Dependency update job
   dependency-update:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
@@ -171,9 +167,15 @@ jobs:
         run: |
           LATEST_HUGO=$(curl -s https://api.github.com/repos/gohugoio/hugo/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/v//')
           echo "Latest Hugo version: $LATEST_HUGO"
-          # Aggiorna nei file necessari
-          sed -i "s/HUGO_VERSION: .*/HUGO_VERSION: $LATEST_HUGO/" .github/workflows/deploy.yml
-          sed -i "s/hugomods\/hugo:go-.*/hugomods\/hugo:go-$LATEST_HUGO/" docker compose.yml Makefile
+          CURRENT_HUGO=$(grep "HUGO_VERSION:" .github/workflows/deploy.yml | cut -d' ' -f2)
+          if [ "$LATEST_HUGO" != "$CURRENT_HUGO" ]; then
+            # Update in necessary files
+            sed -i "s/HUGO_VERSION: .*/HUGO_VERSION: $LATEST_HUGO/" .github/workflows/deploy.yml
+            sed -i "s/hugomods\/hugo:go-.*/hugomods\/hugo:go-$LATEST_HUGO/" docker-compose.yml Makefile
+          else
+            echo "Hugo is already up to date. No changes needed."
+            exit 0
+          fi
 
       - name: 📤 Create Pull Request
         uses: peter-evans/create-pull-request@v6
@@ -182,8 +184,8 @@ jobs:
           commit-message: 'chore: update Hugo version'
           title: 'chore: update Hugo version'
           body: |
-            Aggiornamento automatico della versione Hugo.
+            Automatic Hugo version update.
             
-            - ⬆️ Hugo aggiornato all'ultima versione
-            - 🔄 Files aggiornati: docker compose.yml, Makefile, deploy.yml
+            - ⬆️ Hugo updated to the latest version
+            - 🔄 Updated files: docker-compose.yml, Makefile, deploy.yml
           branch: update/hugo-version
