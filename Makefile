@@ -1,5 +1,4 @@
-# Makefile for Hugo Blog with Docker
-.PHONY: help dev build clean deploy test lint env-check
+.PHONY: help dev build serve clean new-post docker-save docker-load docker-export docker-import list-images
 
 # Load environment variables
 ifneq (,$(wildcard ./.env))
@@ -7,223 +6,153 @@ ifneq (,$(wildcard ./.env))
     export
 endif
 
-# Variables with defaults - UNA SOLA PORTA!
-HUGO_VERSION ?= 0.150.0
-DOCKER_IMAGE := hugomods/hugo:go-$(HUGO_VERSION)
-SITE_NAME ?= manzolo-code-notes
-USER ?= $(WHOAMI)
-PUBLIC_DIR := public
-DOCKER_COMPOSE := docker compose
 HOST ?= 0.0.0.0
 PORT ?= 8080
 
-# Colors for output
-RED := \033[31m
-GREEN := \033[32m
-YELLOW := \033[33m
-BLUE := \033[34m
-PURPLE := \033[35m
-CYAN := \033[36m
-RESET := \033[0m
+# Image configuration
+IMAGE_NAME ?= hugo-blog
+IMAGE_TAG ?= latest
+EXPORT_FILE ?= $(IMAGE_NAME)-$(IMAGE_TAG).tar
+BACKUP_DIR ?= ./docker-backups
 
-# Default target
-help: ## Show this help message
-	@echo "$(GREEN)🚀 Available commands:$(RESET)"
+# Show help
+help:
+	@echo "Available commands:"
 	@echo ""
-	@awk '/^[a-zA-Z_-]+:/ && /## / { split($$0, a, " ## "); printf "  $(BLUE)%-20s$(RESET) %s\n", substr(a[1], 1, index(a[1], ":")-1), a[2] }' $(MAKEFILE_LIST)
+	@echo "Development:"
+	@echo "  make dev         - Start development server"
+	@echo "  make build       - Build the site"
+	@echo "  make serve       - Build and serve in production"
+	@echo "  make new-post    - Create new post"
+	@echo "  make clean       - Clean everything"
 	@echo ""
-	@echo "$(CYAN)⚙️  Configuration:$(RESET)"
-	@echo "  Host: $(YELLOW)$(HOST)$(RESET)"
-	@echo "  Port: $(YELLOW)$(PORT)$(RESET)"
-	@echo "  Hugo Version: $(YELLOW)$(HUGO_VERSION)$(RESET)"
+	@echo "Docker Images:"
+	@echo "  make docker-save    - Save production image to tar file"
+	@echo "  make docker-load    - Load image from tar file"
+	@echo "  make docker-export  - Export container with current content"
+	@echo "  make docker-import  - Import container from tar file"
+	@echo "  make list-images    - List all blog-related images"
+	@echo "  make docker-build   - Build production image locally"
+	@echo "  make docker-clean   - Remove all blog images and containers"
 	@echo ""
+	@echo "Variables:"
+	@echo "  IMAGE_NAME=$(IMAGE_NAME)"
+	@echo "  IMAGE_TAG=$(IMAGE_TAG)"
+	@echo "  EXPORT_FILE=$(EXPORT_FILE)"
 
-# Environment setup
-env-check: ## Check environment configuration
-	@echo "$(BLUE)🔍 Environment Configuration:$(RESET)"
-	@echo "HOST: $(HOST)"
-	@echo "PORT: $(PORT)"
-	@echo "HUGO_VERSION: $(HUGO_VERSION)"
-	@echo "SITE_BASE_URL: $(SITE_BASE_URL)"
-	@echo ""
-	@if [ -f ".env" ]; then \
-		echo "$(GREEN)✅ .env file found$(RESET)"; \
+# Development with live reload
+dev:
+	docker compose up dev
+
+# Build for production
+build:
+	docker compose run --rm build
+	@echo "Build completed in ./public"
+
+# Serve in production (build + nginx)
+serve: build
+	docker compose up -d prod
+	@echo "Site available at http://$(HOST):$(PORT)"
+
+# Create new post
+new-post:
+	@read -p "Post title: " title; \
+	slug=$$(echo "$$title" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g'); \
+	docker compose run --rm dev hugo new posts/$$slug.md; \
+	echo "Post created: content/posts/$$slug.md"
+
+# Clean everything
+clean:
+	docker compose down --rmi local
+	docker run --rm -v $$(pwd):/app alpine:latest sh -c "rm -rf /app/public /app/resources /app/.hugo_build.lock"
+	@echo "Cleanup completed"
+
+# Build production image locally (without compose)
+docker-build: build
+	@echo "Building production Docker image..."
+	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
+	@echo "Image built: $(IMAGE_NAME):$(IMAGE_TAG)"
+
+# Save production image to tar file
+docker-save: docker-build
+	@mkdir -p $(BACKUP_DIR)
+	@echo "Saving image $(IMAGE_NAME):$(IMAGE_TAG) to $(BACKUP_DIR)/$(EXPORT_FILE)..."
+	docker save $(IMAGE_NAME):$(IMAGE_TAG) | gzip > $(BACKUP_DIR)/$(EXPORT_FILE).gz
+	@echo "Image saved to $(BACKUP_DIR)/$(EXPORT_FILE).gz"
+	@ls -lh $(BACKUP_DIR)/$(EXPORT_FILE).gz
+
+# Load image from tar file
+docker-load:
+	@if [ ! -f "$(BACKUP_DIR)/$(EXPORT_FILE).gz" ]; then \
+		echo "Error: File $(BACKUP_DIR)/$(EXPORT_FILE).gz not found"; \
+		echo "Available files:"; \
+		ls -la $(BACKUP_DIR)/ 2>/dev/null || echo "Backup directory doesn't exist"; \
+		exit 1; \
+	fi
+	@echo "Loading image from $(BACKUP_DIR)/$(EXPORT_FILE).gz..."
+	gunzip -c $(BACKUP_DIR)/$(EXPORT_FILE).gz | docker load
+	@echo "Image loaded successfully"
+
+# Export running container with current content
+docker-export: serve
+	@mkdir -p $(BACKUP_DIR)
+	@echo "Exporting running container hugo-prod..."
+	@sleep 2  # Wait for container to be fully up
+	docker export hugo-prod | gzip > $(BACKUP_DIR)/$(IMAGE_NAME)-container-$(shell date +%Y%m%d-%H%M%S).tar.gz
+	@echo "Container exported to $(BACKUP_DIR)/$(IMAGE_NAME)-container-$(shell date +%Y%m%d-%H%M%S).tar.gz"
+
+# Import container from tar file
+docker-import:
+	@echo "Available container exports:"
+	@ls -la $(BACKUP_DIR)/*container*.tar.gz 2>/dev/null || echo "No container exports found"
+	@read -p "Enter the container file name (without .tar.gz): " filename; \
+	if [ -f "$(BACKUP_DIR)/$$filename.tar.gz" ]; then \
+		echo "Importing container from $(BACKUP_DIR)/$$filename.tar.gz..."; \
+		gunzip -c $(BACKUP_DIR)/$$filename.tar.gz | docker import - $(IMAGE_NAME):imported-$(shell date +%Y%m%d); \
+		echo "Container imported as $(IMAGE_NAME):imported-$(shell date +%Y%m%d)"; \
 	else \
-		echo "$(YELLOW)⚠️  .env file not found$(RESET)"; \
+		echo "File not found: $(BACKUP_DIR)/$$filename.tar.gz"; \
+		exit 1; \
 	fi
 
-env-create: ## Create .env file from template
-	@if [ ! -f ".env" ]; then \
-		echo "$(GREEN)🔧 Creating .env file...$(RESET)"; \
-		echo "# Environment variables for Hugo Blog" > .env; \
-		echo "HUGO_VERSION=0.150.0" >> .env; \
-		echo "HOST=0.0.0.0" >> .env; \
-		echo "PORT=8080" >> .env; \
-		echo "SITE_BASE_URL=http://localhost:8080/" >> .env; \
-		echo "HUGO_ENV=development" >> .env; \
-		echo "DOCKER_COMPOSE_PROJECT=hugo-blog" >> .env; \
-		echo "DOCKER_NETWORK=hugo-network" >> .env; \
-		echo "$(GREEN)✅ .env file created$(RESET)"; \
-	else \
-		echo "$(YELLOW)⚠️  .env file already exists$(RESET)"; \
-	fi
-
-# Pre-flight cleanup
-preflight: ## Clean everything before starting
-	@echo "$(YELLOW)🧹 Pre-flight cleanup...$(RESET)"
-	@$(DOCKER_COMPOSE) down --remove-orphans --volumes 2>/dev/null || true
-	@docker network prune -f 2>/dev/null || true
-	@docker container prune -f 2>/dev/null || true
-	@echo "$(GREEN)✅ Pre-flight cleanup completed$(RESET)"
-
-# Development
-dev: preflight env-check ## Start development server
-	@echo "$(GREEN)🚀 Starting development server...$(RESET)"
-	@echo "$(CYAN)📡 Server available at http://localhost:$(PORT)$(RESET)"
-	@$(DOCKER_COMPOSE) --profile dev up hugo-dev
-
-dev-detached: preflight env-check ## Start development server in background
-	@echo "$(GREEN)🚀 Starting development server in background...$(RESET)"
-	@$(DOCKER_COMPOSE) --profile dev up -d hugo-dev
-	@echo "$(CYAN)📡 Server started at http://localhost:$(PORT)$(RESET)"
-
-# Build
-build: preflight env-check ## Build site for production
-	@echo "$(GREEN)🔨 Building site...$(RESET)"
-	@$(DOCKER_COMPOSE) --profile build run --rm hugo-build
-	@echo "$(GREEN)✅ Build completed in ./$(PUBLIC_DIR)$(RESET)"
-
-# Production
-prod-start: preflight build ## Start production server (clean + build + start)
-	@echo "$(GREEN)🚀 Starting production server...$(RESET)"
-	@$(DOCKER_COMPOSE) --profile production up -d nginx
-	@echo "$(GREEN)✅ Production site available at http://localhost:$(PORT)$(RESET)"
-
-prod-stop: ## Stop production server
-	@echo "$(YELLOW)🛑 Stopping production server...$(RESET)"
-	@$(DOCKER_COMPOSE) --profile production down
-	@echo "$(GREEN)✅ Production server stopped$(RESET)"
-
-prod-logs: ## Show production logs
-	@echo "$(BLUE)📋 Production logs:$(RESET)"
-	@$(DOCKER_COMPOSE) --profile production logs --follow nginx
-
-# Standalone container (self-contained with build)
-standalone-build: preflight env-check ## Build standalone production container
-	@echo "$(GREEN)🔨 Building standalone container...$(RESET)"
-	@$(DOCKER_COMPOSE) --profile standalone build hugo-prod
-	@echo "$(GREEN)✅ Standalone container built$(RESET)"
-
-standalone-start: preflight standalone-build ## Start standalone container
-	@echo "$(GREEN)🚀 Starting standalone container...$(RESET)"
-	@$(DOCKER_COMPOSE) --profile standalone up -d hugo-prod
-	@echo "$(GREEN)✅ Standalone site available at http://localhost:$(PORT)$(RESET)"
-
-standalone-stop: ## Stop standalone container
-	@echo "$(YELLOW)🛑 Stopping standalone container...$(RESET)"
-	@$(DOCKER_COMPOSE) --profile standalone down
-	@echo "$(GREEN)✅ Standalone container stopped$(RESET)"
-
-# Docker image commands
-image-build: ## Build Docker image for deployment
-	@echo "$(GREEN)🔨 Building Docker image...$(RESET)"
-	@docker build -t $(SITE_NAME):latest .
-	@echo "$(GREEN)✅ Docker image built$(RESET)"
-
-image-run: preflight ## Run Docker image locally
-	@echo "$(GREEN)🚀 Running Docker image...$(RESET)"
-	@docker run -d --name $(SITE_NAME)-container -p $(PORT):80 $(SITE_NAME):latest
-	@echo "$(GREEN)✅ Container running at http://localhost:$(PORT)$(RESET)"
-
-image-stop: ## Stop Docker image container
-	@echo "$(YELLOW)🛑 Stopping Docker container...$(RESET)"
-	@docker stop $(SITE_NAME)-container 2>/dev/null || true
-	@docker rm $(SITE_NAME)-container 2>/dev/null || true
-	@echo "$(GREEN)✅ Container stopped$(RESET)"
-
-# Cleanup
-clean: ## Clean everything
-	@echo "$(YELLOW)🧹 Full cleanup...$(RESET)"
-	@$(DOCKER_COMPOSE) down --volumes --remove-orphans 2>/dev/null || true
-	@docker stop $(SITE_NAME)-container 2>/dev/null || true
-	@docker rm $(SITE_NAME)-container 2>/dev/null || true
-	@sudo chown -R $(USER):$(USER) $(PUBLIC_DIR) 2>/dev/null || true
-	@sudo chown -R $(USER):$(USER) resources 2>/dev/null || true
-	@rm -rf $(PUBLIC_DIR) resources _gen 2>/dev/null || true
-	@docker system prune -f 2>/dev/null || true
-	@echo "$(GREEN)✅ Cleanup completed$(RESET)"
-
-stop-all: ## Stop all containers
-	@echo "$(YELLOW)🛑 Stopping all containers...$(RESET)"
-	@$(DOCKER_COMPOSE) down --remove-orphans 2>/dev/null || true
-	@$(DOCKER_COMPOSE) --profile dev down 2>/dev/null || true
-	@$(DOCKER_COMPOSE) --profile production down 2>/dev/null || true
-	@$(DOCKER_COMPOSE) --profile standalone down 2>/dev/null || true
-	@docker stop $(SITE_NAME)-container 2>/dev/null || true
-	@docker rm $(SITE_NAME)-container 2>/dev/null || true
-	@echo "$(GREEN)✅ All containers stopped$(RESET)"
-
-# Content Management
-new-post: ## Create new post (usage: make new-post TITLE="Post Title")
-	@if [ -z "$(TITLE)" ]; then \
-		echo "$(RED)❌ Specify title: make new-post TITLE=\"Post Title\"$(RESET)"; \
-	else \
-		$(DOCKER_COMPOSE) run --rm hugo-dev hugo new posts/$$(echo "$(TITLE)" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$$//g').md; \
-		echo "$(GREEN)✅ New post created$(RESET)"; \
-	fi
-
-new-bash: ## Create new Bash tutorial
-	@if [ -z "$(TITLE)" ]; then \
-		echo "$(RED)❌ Specify title: make new-bash TITLE=\"Title\"$(RESET)"; \
-	else \
-		$(DOCKER_COMPOSE) run --rm hugo-dev hugo new bash/$$(echo "$(TITLE)" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$$//g').md; \
-		echo "$(GREEN)✅ New Bash tutorial created$(RESET)"; \
-	fi
-
-# Deployment
-deploy-netlify: build ## Deploy to Netlify
-	@echo "$(BLUE)🚀 Deploying to Netlify...$(RESET)"
-	@if command -v netlify >/dev/null 2>&1; then \
-		netlify deploy --prod --dir=$(PUBLIC_DIR); \
-		echo "$(GREEN)✅ Deployed to Netlify$(RESET)"; \
-	else \
-		echo "$(RED)❌ Netlify CLI not installed$(RESET)"; \
-	fi
-
-# Quick workflows
-quick-dev: clean dev ## Full dev workflow (clean + dev)
-
-quick-prod: clean prod-start ## Full production workflow (clean + build + prod)
-
-quick-standalone: clean standalone-start ## Full standalone workflow (clean + build + start)
-
-# Information
-status: ## Show service status
-	@echo "$(BLUE)📊 Service status:$(RESET)"
-	@$(DOCKER_COMPOSE) ps
-
-info: ## Show system information
-	@echo "$(BLUE)ℹ️  System information:$(RESET)"
-	@echo "Port: $(PORT)"
-	@echo "Docker: $$(docker --version 2>/dev/null || echo 'Not installed')"
-	@echo "Site URL: http://localhost:$(PORT)"
-
-# Help
-workflows: ## Show workflow examples
-	@echo "$(CYAN)🔄 Simple Workflows:$(RESET)"
+# List all blog-related images
+list-images:
+	@echo "Blog-related Docker images:"
+	@docker images | grep -E "($(IMAGE_NAME)|hugo)" || echo "No blog images found"
 	@echo ""
-	@echo "$(YELLOW)Development:$(RESET)"
-	@echo "  make dev                    # Start dev server"
-	@echo "  make quick-dev              # Clean + start dev"
-	@echo ""
-	@echo "$(YELLOW)Production:$(RESET)"
-	@echo "  make prod-start             # Build + start production"
-	@echo "  make quick-prod             # Clean + build + start"
-	@echo ""
-	@echo "$(YELLOW)Standalone:$(RESET)"
-	@echo "  make standalone-start       # Build + start container"
-	@echo "  make quick-standalone       # Clean + build + start"
-	@echo ""
-	@echo "$(YELLOW)Cleanup:$(RESET)"
-	@echo "  make stop-all               # Stop everything"
-	@echo "  make clean                  # Clean everything"
+	@echo "All Docker images:"
+	@docker images
+
+# Clean all blog-related Docker resources
+docker-clean:
+	@echo "Stopping and removing containers..."
+	@docker compose down --rmi local --remove-orphans 2>/dev/null || true
+	@echo "Removing blog images..."
+	@docker images | grep $(IMAGE_NAME) | awk '{print $$3}' | xargs -r docker rmi -f 2>/dev/null || true
+	@echo "Removing unused images and containers..."
+	@docker system prune -f
+	@echo "Docker cleanup completed"
+
+# Create a complete backup (source + image)
+backup-complete: docker-save
+	@echo "Creating complete backup..."
+	@mkdir -p $(BACKUP_DIR)
+	@tar --exclude='./public' --exclude='./resources' --exclude='./node_modules' \
+		--exclude='./docker-backups' --exclude='./.git' \
+		-czf $(BACKUP_DIR)/$(IMAGE_NAME)-source-$(shell date +%Y%m%d-%H%M%S).tar.gz .
+	@echo "Source code backed up to $(BACKUP_DIR)/$(IMAGE_NAME)-source-$(shell date +%Y%m%d-%H%M%S).tar.gz"
+	@echo "Complete backup finished!"
+	@ls -lh $(BACKUP_DIR)/
+
+# Restore from backup
+restore-help:
+	@echo "To restore from backup:"
+	@echo "1. Extract source code: tar -xzf source-backup.tar.gz"
+	@echo "2. Load Docker image: make docker-load"
+	@echo "3. Start the blog: make serve"
+
+# Quick deployment command
+deploy: backup-complete
+	@echo "Deployment package ready!"
+	@echo "Copy the following files to deploy:"
+	@ls -la $(BACKUP_DIR)/*$(shell date +%Y%m%d)* 2>/dev/null || echo "No recent backups found"

@@ -84,8 +84,8 @@
           {{- if eq .Type "posts" }}
           <article class="archive-post" 
                    data-title="{{ .Title | lower }}"
-                   data-categories="{{ delimit .Params.categories "," | lower }}"
-                   data-tags="{{ delimit .Params.tags "," | lower }}"
+                   data-categories="{{ if .Params.categories }}{{ delimit .Params.categories "," | lower }}{{ end }}"
+                   data-tags="{{ if .Params.tags }}{{ delimit .Params.tags "," | lower }}{{ end }}"
                    data-date="{{ .Date.Format "2006-01-02" }}">
             <div class="post-card">
               <div class="post-date">
