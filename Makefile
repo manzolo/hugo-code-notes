@@ -1,4 +1,4 @@
-.PHONY: help dev build serve clean new-post docker-save docker-load docker-export docker-import list-images
+.PHONY: help dev build serve export import clean new-post restart deploy-remote
 
 # Load environment variables
 ifneq (,$(wildcard ./.env))
@@ -9,50 +9,102 @@ endif
 HOST ?= 0.0.0.0
 PORT ?= 8080
 
-# Image configuration
-IMAGE_NAME ?= hugo-blog
-IMAGE_TAG ?= latest
-EXPORT_FILE ?= $(IMAGE_NAME)-$(IMAGE_TAG).tar
-BACKUP_DIR ?= ./docker-backups
-
-# Show help
 help:
 	@echo "Available commands:"
 	@echo ""
 	@echo "Development:"
 	@echo "  make dev         - Start development server"
-	@echo "  make build       - Build the site"
-	@echo "  make serve       - Build and serve in production"
 	@echo "  make new-post    - Create new post"
-	@echo "  make clean       - Clean everything"
 	@echo ""
-	@echo "Docker Images:"
-	@echo "  make docker-save    - Save production image to tar file"
-	@echo "  make docker-load    - Load image from tar file"
-	@echo "  make docker-export  - Export container with current content"
-	@echo "  make docker-import  - Import container from tar file"
-	@echo "  make list-images    - List all blog-related images"
-	@echo "  make docker-build   - Build production image locally"
-	@echo "  make docker-clean   - Remove all blog images and containers"
+	@echo "Production:"
+	@echo "  make build       - Build site content"
+	@echo "  make export      - Create content archive for deployment"
+	@echo "  make serve       - Start production server"
+	@echo "  make import      - Import content to running server (restarts container)"
+	@echo "  make restart     - Restart production server"
 	@echo ""
-	@echo "Variables:"
-	@echo "  IMAGE_NAME=$(IMAGE_NAME)"
-	@echo "  IMAGE_TAG=$(IMAGE_TAG)"
-	@echo "  EXPORT_FILE=$(EXPORT_FILE)"
+	@echo "Remote Deployment:"
+	@echo "  make deploy-remote - Deploy to remote server (build -> export -> scp -> remote restart)"
+	@echo ""
+	@echo "Workflow:"
+	@echo "  make deploy      - Full pipeline: build -> export -> serve -> import"
+	@echo "  make update      - Update running server: build -> export -> import"
+	@echo ""
+	@echo "Utilities:"
+	@echo "  make clean       - Clean build files"
+	@echo "  make logs        - Show server logs"
+	@echo "  make status      - Show container status"
 
 # Development with live reload
 dev:
+	docker compose down dev
+	docker compose rm -f dev
 	docker compose up dev
 
-# Build for production
+# Build content
 build:
+	@echo "Building site content..."
 	docker compose run --rm build
 	@echo "Build completed in ./public"
 
-# Serve in production (build + nginx)
-serve: build
+# Export content to archive
+export: build
+	@echo "Creating content archive..."
+	@mkdir -p ./export
+	@cd ./public && tar -czf ../export/site-content.tar.gz .
+	@cd ..
+	@echo "Content exported to ./export/site-content.tar.gz"
+	@echo "Archive size: $(shell du -h export/site-content.tar.gz | cut -f1)"
+	@echo "Archive contains $(shell tar -tzf export/site-content.tar.gz | wc -l) files"
+
+# Deploy to remote server
+deploy-remote: export
+	@echo "Deploying to remote server $(SSH_HOST)..."
+	@if [ -z "$(SSH_HOST)" ] || [ -z "$(SSH_EXPORT)" ] || [ -z "$(SSH_WORKSPACE)" ]; then \
+		echo "ERROR: SSH variables not set. Please check your .env file"; \
+		exit 1; \
+	fi
+	@echo "Uploading content archive to $(SSH_HOST):$(SSH_EXPORT)..."
+	scp ./export/site-content.tar.gz $(SSH_HOST):$(SSH_EXPORT)/
+	@echo "Restarting Docker services on remote server..."
+	ssh $(SSH_HOST) "cd $(SSH_WORKSPACE) && docker compose down && docker compose up -d"
+	@echo "Remote deployment completed!"
+	@echo "Content uploaded and services restarted on $(SSH_HOST)"
+
+# Start production server
+serve:
+	@echo "Starting production server..."
 	docker compose up -d prod
+	@echo "Server started at http://$(HOST):$(PORT)"
+	@echo "Container will auto-import content if archive exists"
+
+# Import content to running server (restarts container to trigger import)
+import:
+	@if [ ! -f "./export/site-content.tar.gz" ]; then \
+		echo "ERROR: No content archive found. Run 'make export' first."; \
+		exit 1; \
+	fi
+	@echo "Importing content to running server..."
+	@echo "Restarting container to trigger auto-import..."
+	docker compose restart prod
+	@echo "Content imported successfully!"
 	@echo "Site available at http://$(HOST):$(PORT)"
+
+# Restart production server
+restart:
+	@echo "Restarting production server..."
+	docker compose restart prod
+	@echo "Server restarted at http://$(HOST):$(PORT)"
+
+# Full deployment pipeline
+deploy: export serve
+	@sleep 2  # Wait for container to start
+	@echo "Deployment completed!"
+	@echo "Site available at http://$(HOST):$(PORT)"
+
+# Update running server with new content
+update: export import
+	@echo "Server updated with new content!"
 
 # Create new post
 new-post:
@@ -61,98 +113,44 @@ new-post:
 	docker compose run --rm dev hugo new posts/$$slug.md; \
 	echo "Post created: content/posts/$$slug.md"
 
-# Clean everything
+# Clean build files
 clean:
-	docker compose down --rmi local
-	docker run --rm -v $$(pwd):/app alpine:latest sh -c "rm -rf /app/public /app/resources /app/.hugo_build.lock"
+	@echo "Cleaning build files..."
+	@rm -rf ./public ./resources ./.hugo_build.lock ./export
 	@echo "Cleanup completed"
 
-# Build production image locally (without compose)
-docker-build: build
-	@echo "Building production Docker image..."
-	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
-	@echo "Image built: $(IMAGE_NAME):$(IMAGE_TAG)"
+# Show logs
+logs:
+	docker compose logs -f prod
 
-# Save production image to tar file
-docker-save: docker-build
-	@mkdir -p $(BACKUP_DIR)
-	@echo "Saving image $(IMAGE_NAME):$(IMAGE_TAG) to $(BACKUP_DIR)/$(EXPORT_FILE)..."
-	docker save $(IMAGE_NAME):$(IMAGE_TAG) | gzip > $(BACKUP_DIR)/$(EXPORT_FILE).gz
-	@echo "Image saved to $(BACKUP_DIR)/$(EXPORT_FILE).gz"
-	@ls -lh $(BACKUP_DIR)/$(EXPORT_FILE).gz
-
-# Load image from tar file
-docker-load:
-	@if [ ! -f "$(BACKUP_DIR)/$(EXPORT_FILE).gz" ]; then \
-		echo "Error: File $(BACKUP_DIR)/$(EXPORT_FILE).gz not found"; \
-		echo "Available files:"; \
-		ls -la $(BACKUP_DIR)/ 2>/dev/null || echo "Backup directory doesn't exist"; \
-		exit 1; \
-	fi
-	@echo "Loading image from $(BACKUP_DIR)/$(EXPORT_FILE).gz..."
-	gunzip -c $(BACKUP_DIR)/$(EXPORT_FILE).gz | docker load
-	@echo "Image loaded successfully"
-
-# Export running container with current content
-docker-export: serve
-	@mkdir -p $(BACKUP_DIR)
-	@echo "Exporting running container hugo-prod..."
-	@sleep 2  # Wait for container to be fully up
-	docker export hugo-prod | gzip > $(BACKUP_DIR)/$(IMAGE_NAME)-container-$(shell date +%Y%m%d-%H%M%S).tar.gz
-	@echo "Container exported to $(BACKUP_DIR)/$(IMAGE_NAME)-container-$(shell date +%Y%m%d-%H%M%S).tar.gz"
-
-# Import container from tar file
-docker-import:
-	@echo "Available container exports:"
-	@ls -la $(BACKUP_DIR)/*container*.tar.gz 2>/dev/null || echo "No container exports found"
-	@read -p "Enter the container file name (without .tar.gz): " filename; \
-	if [ -f "$(BACKUP_DIR)/$$filename.tar.gz" ]; then \
-		echo "Importing container from $(BACKUP_DIR)/$$filename.tar.gz..."; \
-		gunzip -c $(BACKUP_DIR)/$$filename.tar.gz | docker import - $(IMAGE_NAME):imported-$(shell date +%Y%m%d); \
-		echo "Container imported as $(IMAGE_NAME):imported-$(shell date +%Y%m%d)"; \
-	else \
-		echo "File not found: $(BACKUP_DIR)/$$filename.tar.gz"; \
-		exit 1; \
-	fi
-
-# List all blog-related images
-list-images:
-	@echo "Blog-related Docker images:"
-	@docker images | grep -E "($(IMAGE_NAME)|hugo)" || echo "No blog images found"
+# Show status
+status:
+	@echo "Container status:"
+	@docker compose ps prod
 	@echo ""
-	@echo "All Docker images:"
-	@docker images
+	@if [ -f "./export/site-content.tar.gz" ]; then \
+		echo "Content archive: $(shell du -h export/site-content.tar.gz | cut -f1) ($(shell tar -tzf ./export/site-content.tar.gz | wc -l) files)"; \
+	else \
+		echo "No content archive found"; \
+	fi
 
-# Clean all blog-related Docker resources
-docker-clean:
-	@echo "Stopping and removing containers..."
-	@docker compose down --rmi local --remove-orphans 2>/dev/null || true
-	@echo "Removing blog images..."
-	@docker images | grep $(IMAGE_NAME) | awk '{print $$3}' | xargs -r docker rmi -f 2>/dev/null || true
-	@echo "Removing unused images and containers..."
-	@docker system prune -f
-	@echo "Docker cleanup completed"
+# Stop everything
+stop:
+	docker compose down
 
-# Create a complete backup (source + image)
-backup-complete: docker-save
-	@echo "Creating complete backup..."
-	@mkdir -p $(BACKUP_DIR)
-	@tar --exclude='./public' --exclude='./resources' --exclude='./node_modules' \
-		--exclude='./docker-backups' --exclude='./.git' \
-		-czf $(BACKUP_DIR)/$(IMAGE_NAME)-source-$(shell date +%Y%m%d-%H%M%S).tar.gz .
-	@echo "Source code backed up to $(BACKUP_DIR)/$(IMAGE_NAME)-source-$(shell date +%Y%m%d-%H%M%S).tar.gz"
-	@echo "Complete backup finished!"
-	@ls -lh $(BACKUP_DIR)/
+# List exported content
+list-exports:
+	@echo "Export directory contents:"
+	@ls -lah ./export/ 2>/dev/null || echo "No exports found"
+	@if [ -f "./export/site-content.tar.gz" ]; then \
+		echo ""; \
+		echo "Current archive contents (first 20 files):"; \
+		tar -tzf ./export/site-content.tar.gz | head -20; \
+		if [ $$(tar -tzf ./export/site-content.tar.gz | wc -l) -gt 20 ]; then \
+			echo "... and $$(( $$(tar -tzf ./export/site-content.tar.gz | wc -l) - 20 )) more files"; \
+		fi; \
+	fi
 
-# Restore from backup
-restore-help:
-	@echo "To restore from backup:"
-	@echo "1. Extract source code: tar -xzf source-backup.tar.gz"
-	@echo "2. Load Docker image: make docker-load"
-	@echo "3. Start the blog: make serve"
-
-# Quick deployment command
-deploy: backup-complete
-	@echo "Deployment package ready!"
-	@echo "Copy the following files to deploy:"
-	@ls -la $(BACKUP_DIR)/*$(shell date +%Y%m%d)* 2>/dev/null || echo "No recent backups found"
+# Development workflow: make changes, test, update production
+dev-update: update
+	@echo "Development changes deployed to production"
