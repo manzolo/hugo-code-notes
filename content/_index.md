@@ -11,6 +11,7 @@ description: "Code Notes - Tutorials, guides and tips for developers"
 - **[Docker & DevOps](/categories/docker/)** - Containerization and deployment  
 - **[Git & GitHub](/categories/git/)** - Version control and collaboration
 - **[Linux](/categories/linux/)** - System administration
+- **[Windows](/categories/windows/)** - Windows tips
 
 ## 🎨 Why this blog?
 

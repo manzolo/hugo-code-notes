@@ -24,6 +24,7 @@ Welcome to the complete archive of tutorials, guides, and programming notes. Use
 - **[Docker & DevOps](/categories/docker/)** - Containerization guides  
 - **[Git](/categories/git/)** - Version control workflows
 - **[Linux](/categories/linux/)** - System administration
+- **[Windows](/categories/windows/)** - Windows tips
 
 ---
 
