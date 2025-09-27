@@ -1,0 +1,75 @@
+{{- $searchData := slice -}}
+
+{{- /* Add all posts */ -}}
+{{- range where .Site.RegularPages "Type" "posts" -}}
+  {{- if not .Draft -}}
+    {{- $content := .Plain | truncate 300 -}}
+    {{- $summary := or .Description .Summary $content -}}
+    {{- $item := dict 
+        "title" .Title
+        "permalink" .Permalink
+        "date" (.Date.Format "2006-01-02")
+        "summary" ($summary | plainify | truncate 200)
+        "content" ($content | plainify)
+        "categories" (.Params.categories | default slice)
+        "tags" (.Params.tags | default slice)
+        "section" .Section
+        "type" "post"
+        "readingTime" .ReadingTime
+        "wordCount" .WordCount
+    -}}
+    {{- $searchData = $searchData | append $item -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* Add popular categories */ -}}
+{{- range first 10 .Site.Taxonomies.categories.ByCount -}}
+  {{- $categoryPage := .Page -}}
+  {{- $postCount := len .Pages -}}
+  {{- $categoryPosts := slice -}}
+  {{- range first 3 .Pages -}}
+    {{- $categoryPosts = $categoryPosts | append .Title -}}
+  {{- end -}}
+  {{- $item := dict 
+      "title" ($categoryPage.Title | title)
+      "permalink" $categoryPage.Permalink
+      "date" ""
+      "summary" (printf "Category with %d posts: %s" $postCount (delimit $categoryPosts ", "))
+      "content" (printf "Archive category %s containing %d posts" ($categoryPage.Title | title) $postCount)
+      "categories" (slice ($categoryPage.Title | title))
+      "tags" slice
+      "section" "categories"
+      "type" "category"
+      "readingTime" 0
+      "wordCount" 0
+      "postCount" $postCount
+  -}}
+  {{- $searchData = $searchData | append $item -}}
+{{- end -}}
+
+{{- /* Add popular tags */ -}}
+{{- range first 10 .Site.Taxonomies.tags.ByCount -}}
+  {{- $tagPage := .Page -}}
+  {{- $postCount := len .Pages -}}
+  {{- $tagPosts := slice -}}
+  {{- range first 3 .Pages -}}
+    {{- $tagPosts = $tagPosts | append .Title -}}
+  {{- end -}}
+  {{- $item := dict 
+      "title" ($tagPage.Title | title)
+      "permalink" $tagPage.Permalink
+      "date" ""
+      "summary" (printf "Tag with %d posts: %s" $postCount (delimit $tagPosts ", "))
+      "content" (printf "Archive tag %s containing %d posts" ($tagPage.Title | title) $postCount)
+      "categories" slice
+      "tags" (slice ($tagPage.Title | title))
+      "section" "tags"
+      "type" "tag"
+      "readingTime" 0
+      "wordCount" 0
+      "postCount" $postCount
+  -}}
+  {{- $searchData = $searchData | append $item -}}
+{{- end -}}
+
+{{- $searchData | jsonify -}}

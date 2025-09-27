@@ -1,0 +1,42 @@
+{{- $searchData := slice -}}
+
+{{- /* Add all posts in this term */ -}}
+{{- range .Pages -}}
+  {{- if not .Draft -}}
+    {{- $content := .Plain | truncate 300 -}}
+    {{- $summary := or .Description .Summary $content -}}
+    {{- $item := dict 
+        "title" .Title
+        "permalink" .Permalink
+        "date" (.Date.Format "2006-01-02")
+        "summary" ($summary | plainify | truncate 200)
+        "content" ($content | plainify)
+        "categories" (.Params.categories | default slice)
+        "tags" (.Params.tags | default slice)
+        "section" .Section
+        "type" "post"
+        "readingTime" .ReadingTime
+        "wordCount" .WordCount
+    -}}
+    {{- $searchData = $searchData | append $item -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* Add term info */ -}}
+{{- $termInfo := dict 
+    "title" .Title
+    "permalink" .Permalink
+    "date" ""
+    "summary" (printf "%s with %d posts" .Title (len .Pages))
+    "content" (printf "Browse all posts in %s. Contains %d posts." .Title (len .Pages))
+    "categories" (cond (eq .Data.Singular "category") (slice .Title) slice)
+    "tags" (cond (eq .Data.Singular "tag") (slice .Title) slice)
+    "section" .Data.Plural
+    "type" .Data.Singular
+    "readingTime" 0
+    "wordCount" 0
+    "postCount" (len .Pages)
+-}}
+{{- $searchData = $searchData | append $termInfo -}}
+
+{{- $searchData | jsonify -}}

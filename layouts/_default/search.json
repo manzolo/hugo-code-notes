@@ -1,0 +1,20 @@
+{{- /* layouts/_default/search.json */ -}}
+{{- $posts := where .Site.RegularPages "Type" "posts" -}}
+{{- $searchData := slice -}}
+
+{{- range $posts -}}
+  {{- if not .Draft -}}
+    {{- $item := dict 
+        "title" .Title
+        "permalink" .Permalink
+        "date" (.Date.Format "2006-01-02")
+        "summary" (or .Description .Summary "")
+        "content" (.Plain | truncate 300)
+        "categories" (.Params.categories | default slice)
+        "tags" (.Params.tags | default slice)
+    -}}
+    {{- $searchData = $searchData | append $item -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $searchData | jsonify -}}

@@ -1,0 +1,42 @@
+{{- $searchData := slice -}}
+
+{{- /* Add all pages in this section */ -}}
+{{- range .Pages -}}
+  {{- if not .Draft -}}
+    {{- $content := .Plain | truncate 300 -}}
+    {{- $summary := or .Description .Summary $content -}}
+    {{- $item := dict 
+        "title" .Title
+        "permalink" .Permalink
+        "date" (.Date.Format "2006-01-02")
+        "summary" ($summary | plainify | truncate 200)
+        "content" ($content | plainify)
+        "categories" (.Params.categories | default slice)
+        "tags" (.Params.tags | default slice)
+        "section" .Section
+        "type" (cond (eq .Type "posts") "post" .Type)
+        "readingTime" .ReadingTime
+        "wordCount" .WordCount
+    -}}
+    {{- $searchData = $searchData | append $item -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* Add section info */ -}}
+{{- $sectionInfo := dict 
+    "title" (.Title | default .Section)
+    "permalink" .Permalink
+    "date" ""
+    "summary" (printf "Section containing %d items" (len .Pages))
+    "content" (printf "Browse all content in the %s section." (.Title | default .Section))
+    "categories" slice
+    "tags" slice
+    "section" .Section
+    "type" "section"
+    "readingTime" 0
+    "wordCount" 0
+    "itemCount" (len .Pages)
+-}}
+{{- $searchData = $searchData | append $sectionInfo -}}
+
+{{- $searchData | jsonify -}}

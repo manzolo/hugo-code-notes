@@ -1,0 +1,98 @@
+{{- /* layouts/_default/index.json - Indice di ricerca completo */ -}}
+{{- $searchData := slice -}}
+
+{{- /* Aggiungi tutti i post */ -}}
+{{- range where .Site.RegularPages "Type" "posts" -}}
+  {{- if not .Draft -}}
+    {{- $content := .Plain | truncate 300 -}}
+    {{- $summary := or .Description .Summary $content -}}
+    {{- $item := dict 
+        "title" .Title
+        "permalink" .Permalink
+        "date" (.Date.Format "2006-01-02")
+        "summary" ($summary | plainify | truncate 200)
+        "content" ($content | plainify)
+        "categories" (.Params.categories | default slice)
+        "tags" (.Params.tags | default slice)
+        "section" .Section
+        "type" "post"
+        "readingTime" .ReadingTime
+        "wordCount" .WordCount
+    -}}
+    {{- $searchData = $searchData | append $item -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* Aggiungi tutte le categorie */ -}}
+{{- range .Site.Taxonomies.categories -}}
+  {{- $categoryPage := .Page -}}
+  {{- $postCount := len .Pages -}}
+  {{- $categoryPosts := slice -}}
+  {{- range first 5 .Pages -}}
+    {{- $categoryPosts = $categoryPosts | append .Title -}}
+  {{- end -}}
+  {{- $item := dict 
+      "title" ($categoryPage.Title | title)
+      "permalink" $categoryPage.Permalink
+      "date" ""
+      "summary" (printf "Category with %d posts: %s" $postCount (delimit $categoryPosts ", "))
+      "content" (printf "Browse all posts in the %s category. Contains %d posts including: %s" ($categoryPage.Title | title) $postCount (delimit $categoryPosts ", "))
+      "categories" (slice ($categoryPage.Title | title))
+      "tags" slice
+      "section" "categories"
+      "type" "category"
+      "readingTime" 0
+      "wordCount" 0
+      "postCount" $postCount
+  -}}
+  {{- $searchData = $searchData | append $item -}}
+{{- end -}}
+
+{{- /* Aggiungi tutti i tag */ -}}
+{{- range .Site.Taxonomies.tags -}}
+  {{- $tagPage := .Page -}}
+  {{- $postCount := len .Pages -}}
+  {{- $tagPosts := slice -}}
+  {{- range first 5 .Pages -}}
+    {{- $tagPosts = $tagPosts | append .Title -}}
+  {{- end -}}
+  {{- $item := dict 
+      "title" ($tagPage.Title | title)
+      "permalink" $tagPage.Permalink
+      "date" ""
+      "summary" (printf "Tag with %d posts: %s" $postCount (delimit $tagPosts ", "))
+      "content" (printf "Browse all posts tagged with %s. Contains %d posts including: %s" ($tagPage.Title | title) $postCount (delimit $tagPosts ", "))
+      "categories" slice
+      "tags" (slice ($tagPage.Title | title))
+      "section" "tags"
+      "type" "tag"
+      "readingTime" 0
+      "wordCount" 0
+      "postCount" $postCount
+  -}}
+  {{- $searchData = $searchData | append $item -}}
+{{- end -}}
+
+{{- /* Aggiungi altre pagine importanti */ -}}
+{{- range .Site.RegularPages -}}
+  {{- if and (ne .Type "posts") (not .Draft) (ne .Layout "search") -}}
+    {{- $content := .Plain | truncate 300 -}}
+    {{- $summary := or .Description .Summary $content -}}
+    {{- $item := dict 
+        "title" .Title
+        "permalink" .Permalink
+        "date" (.Date.Format "2006-01-02")
+        "summary" ($summary | plainify | truncate 200)
+        "content" ($content | plainify)
+        "categories" (.Params.categories | default slice)
+        "tags" (.Params.tags | default slice)
+        "section" .Section
+        "type" "page"
+        "readingTime" .ReadingTime
+        "wordCount" .WordCount
+    -}}
+    {{- $searchData = $searchData | append $item -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $searchData | jsonify -}}

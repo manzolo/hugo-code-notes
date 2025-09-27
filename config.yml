@@ -27,11 +27,35 @@ menu:
       url: /about/
       weight: 60
 
+# Output formats per diversi tipi di pagina
 outputs:
   home:
     - HTML
     - RSS
-    - JSON  # Per la ricerca
+    - JSON  # Per l'indice di ricerca globale
+  page:
+    - HTML
+  section:
+    - HTML
+    - RSS
+    - JSON  # Per la ricerca nelle sezioni
+  term:
+    - HTML
+    - RSS
+    - JSON  # Per la ricerca nei termini (categories/tags)
+
+# Configurazione output formats
+outputFormats:
+  JSON:
+    mediaType: "application/json"
+    baseName: "index"
+    isPlainText: true
+    notAlternative: true
+
+# Media types
+mediaTypes:
+  "application/json":
+    suffixes: ["json"]
 
 params:
   env: production
