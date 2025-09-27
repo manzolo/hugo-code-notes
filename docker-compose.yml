@@ -3,47 +3,123 @@ services:
   dev:
     image: hugomods/hugo:go-0.150.0
     container_name: hugo-dev
-    command: hugo server --bind 0.0.0.0 --port 1313 --baseURL ${SITE_BASE_URL} --appendPort=false --buildDrafts
+    command: hugo server --bind 0.0.0.0 --port 1313 --baseURL ${SITE_BASE_URL:-http://localhost:8080/} --appendPort=false --buildDrafts --buildFuture
     ports:
-      - "8080:1313"
+      - "${DEV_PORT:-8080}:1313"
     volumes:
       - ./:/src
     environment:
       - HUGO_ENV=development
     user: "${UID:-1000}:${GID:-1000}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:1313"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Build service (creates content in public/)
   build:
     image: hugomods/hugo:go-0.150.0
     container_name: hugo-build
-    command: hugo --minify --baseURL="${SITE_BASE_URL}"
+    command: hugo --baseURL="${SITE_BASE_URL:-http://localhost:8080/}"
     volumes:
       - ./:/src
     environment:
-      - HUGO_ENV=production
+      - HUGO_ENV=${HUGO_ENV:-production}
     user: "${UID:-1000}:${GID:-1000}"
 
-  # Production server with auto-import from shared volume
+  # Production server with auto-import
   prod:
     build: .
-    image: manzolo/code-notes
+    image: manzolo/code-notes:latest
     container_name: hugo-prod
     ports:
-      - "8080:80"
+      - "${PROD_PORT:-8080}:80"
     volumes:
-      - ./export:/export  # Shared volume for content transfer
+      - ./export:/export
     environment:
-      - BACKUP_IMPORTED_ARCHIVE=false
+      - BACKUP_IMPORTED_ARCHIVE=${BACKUP_IMPORTED_ARCHIVE:-false}
+      - SITE_BASE_URL=${SITE_BASE_URL:-http://localhost:8080/}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Alternative: nginx with shared volume (without custom Dockerfile)
+  # Utility: nginx with volume mount (alternative to custom image)
   nginx:
     image: nginx:alpine
     container_name: hugo-nginx
     ports:
-      - "8080:80"
+      - "${NGINX_PORT:-8082}:80"
     volumes:
-      - ./export:/export
+      - ./export:/export:ro
       - ./public:/usr/share/nginx/html:ro
       - ./conf/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
+
+  # Optional: Content backup service
+  backup:
+    image: alpine:latest
+    container_name: hugo-backup
+    volumes:
+      - ./:/workspace
+      - ./backups:/backups
+    environment:
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-7}
+    command: |
+      sh -c "
+        echo 'Creating automated backup...'
+        cd /workspace
+        backup_name=\"backup-\$(date +%Y%m%d-%H%M%S).tar.gz\"
+        tar -czf \"/backups/\$$backup_name\" \\
+          --exclude='./backups' \\
+          --exclude='./public' \\
+          --exclude='./resources' \\
+          --exclude='./.git' \\
+          --exclude='./node_modules' \\
+          .
+        echo \"Backup created: \$$backup_name\"
+        
+        # Clean old backups
+        find /backups -name 'backup-*.tar.gz' -mtime +\${BACKUP_RETENTION_DAYS} -delete 2>/dev/null || true
+        echo 'Backup completed'
+      "
+    profiles:
+      - backup
+
+  # Optional: File watcher for auto-rebuild
+  watcher:
+    image: hugomods/hugo:go-0.150.0
+    container_name: hugo-watcher
+    volumes:
+      - ./:/src
+    environment:
+      - HUGO_ENV=development
+    user: "${UID:-1000}:${GID:-1000}"
+    command: |
+      sh -c "
+        echo 'Starting file watcher...'
+        while true; do
+          inotifywait -r -e modify,create,delete /src/content /src/static /src/layouts 2>/dev/null
+          echo 'Changes detected, rebuilding...'
+          hugo --baseURL='${DEV_BASE_URL:-http://localhost:8080/}' --buildDrafts
+          echo 'Rebuild completed'
+        done
+      "
+    profiles:
+      - watch
+
+# Named volumes for persistent data
+volumes:
+  hugo_cache:
+    driver: local
+  hugo_resources:
+    driver: local
+
+# Networks
+networks:
+  default:
+    name: hugo_network

@@ -1,0 +1,144 @@
+# config/_default/config.yml - Configurazione base
+baseURL: ""
+title: "Manzolo Code Notes"
+languageCode: "en-US"
+theme: "PaperMod"
+
+enableRobotsTXT: true
+enableEmoji: true
+enableGitInfo: true
+
+paginate: 10
+paginatePath: "page"
+
+menu:
+  main:
+    - name: Home
+      url: /
+      weight: 10
+    - name: Posts
+      url: /posts/
+      weight: 20
+    - name: Categories
+      url: /categories/
+      weight: 30
+    - name: Tags
+      url: /tags/
+      weight: 40
+    - name: Search
+      url: /search/
+      weight: 50
+    - name: About
+      url: /about/
+      weight: 60
+
+outputs:
+  home:
+    - HTML
+    - RSS
+    - JSON
+
+params:
+  title: "Manzolo Code Notes"
+  description: "Technical blog with tutorials and programming notes"
+  author: "Manzolo"
+  
+  DateFormat: "January 2, 2006"
+  defaultTheme: auto
+  
+  ShowReadingTime: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  ShowWordCount: true
+  ShowRssButtonInSectionTermList: true
+  showtoc: true
+  ShowSearch: true
+  
+  homeInfoParams:
+    Title: "Welcome to Code Notes"
+    Content: >
+      A technical blog with tutorials, guides and programming notes.
+      
+      - Practical tutorials
+      - Detailed guides  
+      - Tips and tricks
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+  highlight:
+    style: github-dark
+    lineNumbers: true
+    codeFences: true
+
+permalinks:
+  posts: "/:year/:month/:title/"
+
+taxonomies:
+  category: categories
+  tag: tags
+
+---
+# config/development/config.yml - Configurazione sviluppo
+baseURL: "http://localhost:8080/"
+
+params:
+  env: development
+  ShowWordCount: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  
+  # Debug features for development
+  ShowEditButton: true
+  ShowPostNavLinks: true
+  ShowShareButtons: false
+  
+  # Analytics disabled in development
+  googleAnalytics: ""
+
+markup:
+  highlight:
+    style: github
+    lineNumbers: true
+
+---
+# config/production/config.yml - Configurazione produzione
+baseURL: ""  # Impostato dinamicamente
+
+params:
+  env: production
+  
+  # Production optimizations
+  ShowEditButton: false
+  ShowPostNavLinks: true
+  ShowShareButtons: true
+  
+  # Production analytics
+  googleAnalytics: "G-XXXXXXXXXX"  # Inserisci il tuo ID
+  
+  # SEO optimizations
+  images: ["images/logo.png"]
+  
+  # Social media
+  social:
+    twitter: "yourusername"
+    github: "yourusername"
+    linkedin: "yourusername"
+    
+  # Custom 404 page
+  custom404:
+    title: "Page Not Found"
+    subtitle: "Oops! The page you're looking for doesn't exist."
+    description: "The page you requested could not be found."
+    backHome: "← Back to Home"
+    
+markup:
+  highlight:
+    style: github-dark
+    
+# Production-only features
+minify:
+  disableHTML: false
+  disableCSS: false
+  disableJS: false
