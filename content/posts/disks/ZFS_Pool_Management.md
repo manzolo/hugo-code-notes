@@ -23,9 +23,26 @@ searchHidden: false
 
 ZFS (Zettabyte File System) is an advanced filesystem and volume manager for large storage pools, offering snapshots, compression, and redundancy (e.g., mirror, RAID-Z). This guide shows how to initialize disks with GPT, create a ZFS pool, use stable device identifiers (`/dev/disk/by-id/` or `/dev/disk/by-partuuid/`), support various RAID types (mirror, RAID-Z1, RAID-Z2), and mount datasets for normal user access on Debian/Ubuntu.
 
+## ⚡ Quick Start
+
+{{< callout type="info" >}}
+**New to ZFS? Start here:**
+1. [Install prerequisites](#prerequisites)
+2. [Identify your disks](#identifying-available-disks)
+3. **Choose your method:**
+   - Physical disks? → [Whole Disks with by-id](#method-a-with-devdiskby-id-physical-disks)
+   - Virtual disks (VM)? → [Whole Disks without by-id](#method-b-without-devdiskby-id-virtual-disks)
+   - Need partitions? → [Manual Partitions](#alternative-approach-manual-partitions-with-by-partuuid)
+4. [Create mirror pool](#creating-the-pool-whole-disks) (most common setup)
+5. [Create and manage datasets](#creating-and-managing-datasets)
+
+**Need to fix something?** → [Replace a failed disk](#replace-a-failed-disk)
+{{< /callout >}}
+
 ## What is a ZFS Pool?
 
 A ZFS pool is a collection of virtual devices (vdevs) forming the foundation for ZFS datasets (filesystems) and zvols (block devices). Pools support:
+
 - **Redundancy**: Mirror (RAID-1), RAID-Z1/2/3 (like RAID-5/6/7).
 - **Expansion**: Add vdevs to increase capacity (cannot remove easily).
 - **Health Monitoring**: Scrubbing and checksums for data integrity.
@@ -33,30 +50,37 @@ A ZFS pool is a collection of virtual devices (vdevs) forming the foundation for
 
 Pools are created with `zpool create` and managed via `zpool` commands. Data is stored in datasets (e.g., `tank/home`).
 
-## Understanding UUIDs in ZFS
+## 🔑 Understanding UUIDs in ZFS
 
-Before diving in, it's important to understand the different types of identifiers:
+{{< callout type="warning" >}}
+**Critical Concept**: Understanding the difference between Pool UUID and Device Identifiers is essential for proper ZFS management.
+{{< /callout >}}
 
 ### Pool UUID vs Device Identifiers
 
-- **Pool UUID** (e.g., `150809157285762621`): 
-  - The unique identifier of the ZFS pool itself
-  - Shown as `UUID="..."` with `TYPE="zfs_member"` in `blkid` output
-  - **Shared by all disks/partitions** that are members of the same pool
-  - Not used directly in zpool commands
+#### Pool UUID
+- **Example**: `150809157285762621`
+- Shown as `UUID="..."` with `TYPE="zfs_member"` in `blkid` output
+- **Shared by ALL disks/partitions** that are members of the same pool
+- **Not used directly** in zpool commands
 
-- **Device Identifiers** (for referencing individual disks/partitions):
-  - **`/dev/disk/by-id/`**: Persistent identifier based on disk serial number
-    - **Best for whole disks** (e.g., `ata-Samsung_SSD_850_S21NX0AG123456`)
-    - Survives disk reordering and system reboots
-  - **`/dev/disk/by-partuuid/`**: GPT partition UUID
-    - **Best for manual partitions** (e.g., `ee2507fe-0b11-ad4c-b1c5-87e36055410e`)
-    - Each partition has its own unique PARTUUID
-  - **`/dev/vdb`, `/dev/sda`**: Kernel device names
-    - **Unreliable** - can change on reboot or disk reordering
-    - Use only for initial pool creation, then switch to persistent identifiers
+#### Device Identifiers (for referencing individual disks/partitions)
 
-### When to Use Each Identifier
+**`/dev/disk/by-id/`** - Persistent identifier based on disk serial number
+- ✅ **Best for whole disks** 
+- Example: `ata-Samsung_SSD_850_S21NX0AG123456`
+- Survives disk reordering and system reboots
+
+**`/dev/disk/by-partuuid/`** - GPT partition UUID
+- ✅ **Best for manual partitions**
+- Example: `ee2507fe-0b11-ad4c-b1c5-87e36055410e`
+- Each partition has its own unique PARTUUID
+
+**`/dev/vdb`, `/dev/sda`** - Kernel device names
+- ⚠️ **Unreliable** - can change on reboot or disk reordering
+- Use only for initial pool creation, then switch to persistent identifiers
+
+### Decision Matrix: Which Identifier to Use?
 
 | Scenario | Recommended Identifier | Example |
 |----------|------------------------|---------|
@@ -66,34 +90,33 @@ Before diving in, it's important to understand the different types of identifier
 
 ## Prerequisites
 
-- **Debian/Ubuntu**: Version 20.04+.
-- **ZFS Installed**: OpenZFS package.
-- **Disks**: Unused disks (e.g., `/dev/vdb`, `/dev/vdc`). **Warning**: ZFS erases data.
-- **Root Access**: Use `sudo`.
-- **Tools**: `parted` for partitioning (if needed).
+{{< callout type="info" >}}
+**Required**:
+- Debian/Ubuntu 20.04+
+- Root access (`sudo`)
+- Unused disks (e.g., `/dev/vdb`, `/dev/vdc`)
+{{< /callout >}}
 
-Install ZFS:
+{{< callout type="warning" >}}
+**⚠️ Data Loss Warning**: ZFS will erase all data on selected disks. Back up critical data first!
+{{< /callout >}}
+
+### Installation
+
 ```bash
 sudo apt update
 sudo apt install zfsutils-linux parted
 sudo modprobe zfs
 ```
 
-Verify:
+### Verify Installation
+
 ```bash
 zpool status  # No pools initially
 zfs list      # Empty initially
 ```
 
-## Critical Warning: Verify Disks
-
-{{< callout type="warning" >}}
-**Caution**: ZFS erases disk data. Use `lsblk` or `blkid` to confirm disks (e.g., `/dev/vdb`, `/dev/vdc`). Back up critical data.
-{{< /callout >}}
-
 ## Identifying Available Disks
-
-Before creating a pool, you need to identify which disks are available.
 
 ### 1. List All Block Devices
 
@@ -102,7 +125,7 @@ Before creating a pool, you need to identify which disks are available.
 lsblk
 ```
 
-Example output:
+**Example output**:
 ```
 NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
 sda      8:0    0   20G  0 disk 
@@ -121,9 +144,11 @@ In this example, `vdb` and `vdc` are available disks without partitions.
 ls -l /dev/disk/by-id/ | grep -v part
 ```
 
-**Important**: For brand new disks (especially virtual disks like `/dev/vdb`, `/dev/vdc`), `/dev/disk/by-id/` might not show them because:
+{{< callout type="info" >}}
+**Important**: For brand new virtual disks (like `/dev/vdb`, `/dev/vdc`), `/dev/disk/by-id/` might not show them because:
 - Virtual disks (QEMU/VirtIO) often don't have hardware serial numbers
 - Disks without partition tables may not appear in by-id
+{{< /callout >}}
 
 **What you might see**:
 ```bash
@@ -145,11 +170,17 @@ sudo blkid /dev/vdb /dev/vdc
 sudo wipefs /dev/vdb /dev/vdc
 ```
 
-## Recommended Approach: Whole Disks
+## 🚀 Recommended Approach: Whole Disks
 
-Using whole disks is the **recommended approach** for most ZFS installations. The method depends on whether your disks have persistent by-id identifiers.
+{{< callout type="success" >}}
+**Best Practice**: Using whole disks is the recommended approach for most ZFS installations. ZFS automatically creates optimal partition layouts.
+{{< /callout >}}
 
 ### Method A: With /dev/disk/by-id/ (Physical Disks)
+
+{{< callout type="info" >}}
+**Use this method if**: You have physical SATA/SAS disks that appear in `/dev/disk/by-id/`
+{{< /callout >}}
 
 If your disks appear in `/dev/disk/by-id/` (typical for physical SATA/SAS disks):
 
@@ -162,27 +193,29 @@ ls -l /dev/disk/by-id/ | grep -v part
 # ata-WDC_WD40EFRX-68N32N0_WD-WCC7K7654321 -> ../../sdc
 ```
 
-Use these IDs directly in pool creation (see examples below).
+Use these IDs directly in pool creation.
 
 ### Method B: Without /dev/disk/by-id/ (Virtual Disks)
 
-If your disks DON'T appear in `/dev/disk/by-id/` (typical for virtual disks like `/dev/vdb`, `/dev/vdc`):
+{{< callout type="info" >}}
+**Use this method if**: You have virtual disks (VMs) like `/dev/vdb`, `/dev/vdc` that don't appear in `/dev/disk/by-id/`
+{{< /callout >}}
 
-**Option 1: Create pool with device names, ZFS will handle it**
+**Option 1: Create pool with device names** (Recommended for VMs)
 
-ZFS automatically creates a GPT partition table when you use a whole disk. After creation, you can identify the pool by its pool UUID.
+ZFS automatically creates a GPT partition table when you use a whole disk.
 
 ```bash
 # Create pool with device names
 sudo zpool create tank mirror /dev/vdb /dev/vdc
 
-# ZFS creates partitions automatically
 # After creation, check what ZFS created:
 sudo blkid | grep zfs_member
 ls -l /dev/disk/by-id/ | grep -v dvd
 ```
 
-**Option 2: Use VirtIO IDs if available**
+<details>
+<summary><strong>Option 2: Use VirtIO IDs if available</strong></summary>
 
 ```bash
 # Check for virtio identifiers
@@ -190,7 +223,11 @@ ls -l /dev/disk/by-id/ | grep virtio
 
 # If available, use them:
 # virtio-xxxxx -> ../../vdb
+sudo zpool create tank mirror \
+  /dev/disk/by-id/virtio-xxxxx \
+  /dev/disk/by-id/virtio-yyyyy
 ```
+</details>
 
 ### Creating the Pool (Whole Disks)
 
@@ -198,22 +235,27 @@ ZFS will automatically create a GPT partition table and use the entire disk.
 
 #### With Physical Disks (using by-id)
 
-**Mirror (RAID-1, 2 disks)**
+**Mirror (RAID-1, 2 disks)** - Recommended for most users
 ```bash
 sudo zpool create tank mirror \
   /dev/disk/by-id/ata-WDC_WD40EFRX-68N32N0_WD-WCC7K1234567 \
   /dev/disk/by-id/ata-WDC_WD40EFRX-68N32N0_WD-WCC7K7654321
 ```
 
-**RAID-Z1 (3+ disks, 1 disk failure tolerance)**
+<details>
+<summary><strong>RAID-Z1 (3+ disks, 1 disk failure tolerance)</strong></summary>
+
 ```bash
 sudo zpool create tank raidz \
   /dev/disk/by-id/ata-WDC_WD40EFRX-68N32N0_WD-WCC7K1234567 \
   /dev/disk/by-id/ata-WDC_WD40EFRX-68N32N0_WD-WCC7K7654321 \
   /dev/disk/by-id/ata-WDC_WD40EFRX-68N32N0_WD-WCC7K9876543
 ```
+</details>
 
-**RAID-Z2 (4+ disks, 2 disk failure tolerance)**
+<details>
+<summary><strong>RAID-Z2 (4+ disks, 2 disk failure tolerance)</strong></summary>
+
 ```bash
 sudo zpool create tank raidz2 \
   /dev/disk/by-id/ata-WDC_WD40EFRX-68N32N0_WD-WCC7K1234567 \
@@ -221,33 +263,33 @@ sudo zpool create tank raidz2 \
   /dev/disk/by-id/ata-WDC_WD40EFRX-68N32N0_WD-WCC7K9876543 \
   /dev/disk/by-id/ata-WDC_WD40EFRX-68N32N0_WD-WCC7K1111111
 ```
+</details>
 
 #### With Virtual Disks (using device names)
 
-**Mirror (RAID-1, 2 disks)**
+**Mirror (RAID-1, 2 disks)** - Most common for VMs
 ```bash
 # ZFS creates GPT automatically
 sudo zpool create tank mirror /dev/vdb /dev/vdc
 ```
 
-**RAID-Z1 (3+ disks)**
+<details>
+<summary><strong>RAID-Z1 (3+ disks)</strong></summary>
+
 ```bash
 sudo zpool create tank raidz /dev/vdb /dev/vdc /dev/vdd
 ```
+</details>
 
-**RAID-Z2 (4+ disks)**
+<details>
+<summary><strong>RAID-Z2 (4+ disks)</strong></summary>
+
 ```bash
 sudo zpool create tank raidz2 /dev/vdb /dev/vdc /dev/vdd /dev/vde
 ```
+</details>
 
-After creation with virtual disks, ZFS creates partitions automatically:
-```bash
-# Check what ZFS created
-lsblk
-sudo blkid | grep zfs_member
-```
-
-### 3. Verify Pool Status
+### Verify Pool Status
 
 ```bash
 zpool status tank
@@ -265,7 +307,7 @@ config:
             ata-WDC_WD40EFRX-68N32N0_WD-WCC7K7654321    ONLINE       0     0     0
 ```
 
-**Example output (virtual disks with device names)**:
+**Example output (virtual disks)**:
 ```
   pool: tank
  state: ONLINE
@@ -277,9 +319,7 @@ config:
             vdc     ONLINE       0     0     0
 ```
 
-**Note**: For virtual disks, ZFS might show the device name (`vdb`) or a partition ID, depending on the system.
-
-### 4. Understanding What ZFS Created
+### Understanding What ZFS Created
 
 After creating a pool with whole disks, check what ZFS automatically created:
 
@@ -294,7 +334,7 @@ sudo blkid | grep zfs_member
 /dev/vdc: UUID="150809157285762621" UUID_SUB="9876543210987654321" TYPE="zfs_member" PTTYPE="gpt"
 ```
 
-Or ZFS might create partitions:
+Or with partitions:
 ```
 /dev/vdb1: UUID="150809157285762621" TYPE="zfs_member" PARTUUID="ee2507fe-0b11-ad4c-b1c5-87e36055410e"
 /dev/vdc1: UUID="150809157285762621" TYPE="zfs_member" PARTUUID="c074a830-4f67-a24d-b028-7cefbe64a690"
@@ -305,30 +345,24 @@ Or ZFS might create partitions:
 lsblk
 ```
 
-**Example output**:
-```
-NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
-vdb    252:16   0   10G  0 disk 
-├─vdb1 252:17   0   10G  0 part 
-└─vdb9 252:25   0    8M  0 part 
-vdc    252:32   0   10G  0 disk 
-├─vdc1 252:33   0   10G  0 part 
-└─vdc9 252:41   0    8M  0 part 
-```
-
 **What ZFS created**:
 - **Partition 1** (`vdb1`, `vdc1`): Main ZFS partition with your data
-- **Partition 9** (`vdb9`, `vdc9`): Small 8MB partition for ZFS reserved area (bootloader compatibility)
+- **Partition 9** (`vdb9`, `vdc9`): Small 8MB partition for ZFS reserved area
 - **GPT** (`PTTYPE="gpt"`): GUID Partition Table
-- **Pool UUID**: Same `UUID` for all pool members (`150809157285762621`)
-- **PARTUUID**: Unique for each partition (if partitions were created)
+- **Pool UUID**: Same for all pool members (`150809157285762621`)
+- **PARTUUID**: Unique for each partition (if created)
 
 ## Alternative Approach: Manual Partitions with by-partuuid
 
-Use this approach if you need to:
+{{< callout type="warning" >}}
+**Use this approach only if you need to:**
 - Share a disk with other filesystems (dual-boot)
 - Create custom partition layouts
 - Use only part of a disk for ZFS
+{{< /callout >}}
+
+<details>
+<summary><strong>Expand for manual partition instructions</strong></summary>
 
 ### 1. Create GPT Partitions
 
@@ -365,7 +399,7 @@ sudo zpool create tank mirror \
   /dev/disk/by-partuuid/c074a830-4f67-a24d-b028-7cefbe64a690
 ```
 
-Or, create initially with device names and then transition:
+Or transition from device names:
 
 ```bash
 # Create with device names
@@ -393,26 +427,11 @@ config:
             ee2507fe-0b11-ad4c-b1c5-87e36055410e ONLINE       0     0     0
             c074a830-4f67-a24d-b028-7cefbe64a690 ONLINE       0     0     0
 ```
+</details>
 
-### 5. Check Pool UUID and PARTUUIDs
+## 💾 Creating and Managing Datasets
 
-```bash
-sudo blkid | grep zfs_member
-```
-
-Example output:
-```
-/dev/vdb1: UUID="150809157285762621" TYPE="zfs_member" PARTUUID="ee2507fe-0b11-ad4c-b1c5-87e36055410e"
-/dev/vdc1: UUID="150809157285762621" TYPE="zfs_member" PARTUUID="c074a830-4f67-a24d-b028-7cefbe64a690"
-```
-
-Notice:
-- **UUID** (pool UUID): Same for both partitions (`150809157285762621`)
-- **PARTUUID**: Different for each partition (unique GPT partition identifier)
-
-## Creating and Managing Datasets
-
-### 1. Create and Mount Dataset
+### Create and Mount Dataset
 
 ```bash
 # Create dataset
@@ -425,7 +444,7 @@ sudo zfs set mountpoint=/mnt/tank tank/data
 sudo zfs set compression=lz4 tank/data
 ```
 
-### 2. Set Permissions for Normal User
+### Set Permissions for Normal User
 
 ```bash
 # Change ownership to your user
@@ -433,7 +452,7 @@ sudo chown manzolo:manzolo /mnt/tank
 sudo chmod 775 /mnt/tank
 ```
 
-### 3. Write Data as Normal User
+### Write Data as Normal User
 
 ```bash
 # Now you can write without sudo
@@ -441,33 +460,41 @@ echo "Test data" > /mnt/tank/test.txt
 cat /mnt/tank/test.txt
 ```
 
-### 4. Verify Dataset
+### Verify Dataset
 
 ```bash
 zfs list
 df -h /mnt/tank
 ```
 
-## Pool Modification Operations
+## 🔧 Pool Modification Operations
 
 ### Add Devices to Expand Pool
 
-#### Add Mirror Vdev (whole disks)
+<details>
+<summary><strong>Add Mirror Vdev (whole disks)</strong></summary>
+
 ```bash
 sudo zpool add tank mirror \
   /dev/disk/by-id/ata-WDC_WD40EFRX-68N32N0_WD-WCC7K3333333 \
   /dev/disk/by-id/ata-WDC_WD40EFRX-68N32N0_WD-WCC7K4444444
 ```
+</details>
 
-#### Add RAID-Z1 Vdev (whole disks)
+<details>
+<summary><strong>Add RAID-Z1 Vdev (whole disks)</strong></summary>
+
 ```bash
 sudo zpool add tank raidz \
   /dev/disk/by-id/ata-WDC_WD40EFRX-68N32N0_WD-WCC7K5555555 \
   /dev/disk/by-id/ata-WDC_WD40EFRX-68N32N0_WD-WCC7K6666666 \
   /dev/disk/by-id/ata-WDC_WD40EFRX-68N32N0_WD-WCC7K7777777
 ```
+</details>
 
-#### Add Mirror with Partitions
+<details>
+<summary><strong>Add Mirror with Partitions</strong></summary>
+
 ```bash
 # Create partitions
 sudo parted /dev/vde mklabel gpt
@@ -480,10 +507,13 @@ sudo zpool add tank mirror \
   /dev/disk/by-partuuid/[partuuid-of-vde1] \
   /dev/disk/by-partuuid/[partuuid-of-vdf1]
 ```
+</details>
 
 ### Replace a Failed Disk
 
-The replacement procedure depends on how the pool was created.
+{{< callout type="warning" >}}
+**Important**: The replacement procedure depends on how the pool was created (whole disks vs partitions).
+{{< /callout >}}
 
 #### For Pools Created with Whole Disks (by-id)
 
@@ -506,7 +536,6 @@ config:
 
 2. **Replace the failed disk**:
 ```bash
-# Replace using by-id paths
 sudo zpool replace tank \
   ata-WDC_WD40EFRX-68N32N0_WD-WCC7K1234567 \
   /dev/disk/by-id/ata-WDC_WD40EFRX-68N32N0_WD-WCC7K9999999
@@ -517,23 +546,12 @@ sudo zpool replace tank \
 zpool status tank
 ```
 
-#### For Pools Created with Partitions (by-partuuid)
+<details>
+<summary><strong>For Pools Created with Partitions (by-partuuid)</strong></summary>
 
 1. **Check pool status**:
 ```bash
 zpool status tank
-```
-
-Example output:
-```
-  pool: tank
- state: DEGRADED
-config:
-        NAME                                     STATE     READ WRITE CKSUM
-        tank                                     DEGRADED     0     0     0
-          mirror-0                               DEGRADED     0     0     0
-            ee2507fe-0b11-ad4c-b1c5-87e36055410e UNAVAIL      0     0     0
-            c074a830-4f67-a24d-b028-7cefbe64a690 ONLINE       0     0     0
 ```
 
 2. **Create partition on replacement disk**:
@@ -549,17 +567,16 @@ sudo zpool replace tank \
   /dev/disk/by-partuuid/[new-partuuid-of-vdg1]
 ```
 
-Or use the device name for the failed device:
-```bash
-sudo zpool replace tank /dev/vdb1 /dev/vdg1
-```
-
 4. **Monitor resilvering**:
 ```bash
 zpool status tank
 ```
+</details>
 
-### Attach Device to Mirror (Convert to Mirror or Expand Existing)
+### Attach Device to Mirror
+
+<details>
+<summary><strong>Convert single disk to mirror or expand existing mirror</strong></summary>
 
 #### Whole Disk Approach
 ```bash
@@ -580,8 +597,9 @@ sudo zpool attach tank \
   ee2507fe-0b11-ad4c-b1c5-87e36055410e \
   /dev/disk/by-partuuid/[new-partuuid]
 ```
+</details>
 
-## Pool Maintenance
+## 🔍 Pool Maintenance
 
 ### Check Pool Status
 ```bash
@@ -600,7 +618,8 @@ zpool status tank
 
 ### Export and Import Pool
 
-Useful for moving pools between systems or maintenance:
+<details>
+<summary><strong>Useful for moving pools between systems or maintenance</strong></summary>
 
 ```bash
 # Export pool
@@ -615,10 +634,15 @@ sudo zpool import -d /dev/disk/by-partuuid tank
 # Import without knowing pool name
 sudo zpool import
 ```
+</details>
 
-## Complete Examples
+## 📋 Complete Examples
 
 ### Example 1: Mirror with Virtual Disks (Most Common for VMs)
+
+{{< callout type="success" >}}
+**Recommended for**: VM environments, home labs
+{{< /callout >}}
 
 ```bash
 # 1. Identify available disks
@@ -650,19 +674,8 @@ zpool status tank
 zfs list
 ```
 
-**Expected output of `zpool status tank`**:
-```
-  pool: tank
- state: ONLINE
-config:
-        NAME        STATE     READ WRITE CKSUM
-        tank        ONLINE       0     0     0
-          mirror-0  ONLINE       0     0     0
-            vdb     ONLINE       0     0     0
-            vdc     ONLINE       0     0     0
-```
-
-### Example 2: Mirror with Physical Disks (by-id)
+<details>
+<summary><strong>Example 2: Mirror with Physical Disks (by-id)</strong></summary>
 
 ```bash
 # 1. Identify disks
@@ -688,8 +701,10 @@ echo "Hello ZFS" > /mnt/tank/test.txt
 zpool status tank
 zfs list
 ```
+</details>
 
-### Example 3: RAID-Z1 with Virtual Disks
+<details>
+<summary><strong>Example 3: RAID-Z1 with Virtual Disks</strong></summary>
 
 ```bash
 # Create RAID-Z1 pool with 3 virtual disks
@@ -698,8 +713,10 @@ sudo zpool create tank raidz /dev/vdb /dev/vdc /dev/vdd
 # Check status
 zpool status tank
 ```
+</details>
 
-### Example 4: Mirror with Manual Partitions
+<details>
+<summary><strong>Example 4: Mirror with Manual Partitions</strong></summary>
 
 ```bash
 # 1. Create partitions
@@ -724,8 +741,10 @@ zpool status tank
 # 6. Check UUIDs
 sudo blkid | grep zfs_member
 ```
+</details>
 
-### Example 5: Replace Failed Partition
+<details>
+<summary><strong>Example 5: Replace Failed Partition</strong></summary>
 
 ```bash
 # 1. Check status (shows failed partition)
@@ -746,8 +765,9 @@ sudo zpool replace tank \
 # 5. Monitor resilver
 zpool status tank
 ```
+</details>
 
-## Command Reference
+## 📚 Command Reference
 
 ### Essential Commands
 
@@ -777,29 +797,26 @@ zpool status tank
 | `sudo blkid` | Show all UUIDs and identifiers |
 | `lsblk` | List block devices |
 
-## Use Cases
-
-- **Home NAS**: Mirror pools for media storage with snapshots
-- **Server Storage**: RAID-Z for enterprise data with redundancy
-- **Backup**: Snapshots for point-in-time recovery
-- **Virtual Machines**: Datasets with compression for VM images
-
-## Pro Tips
+## 💡 Pro Tips
 
 ### Best Practices
-- **Use whole disks with `/dev/disk/by-id/`** for simplicity and performance
-- **Use partitions with `/dev/disk/by-partuuid/`** only when necessary (dual-boot, mixed filesystems)
-- **Enable compression**: `zfs set compression=lz4` saves space with minimal CPU cost
-- **ECC RAM recommended**: Prevents silent data corruption
-- **Regular scrubs**: Schedule monthly with cron
-- **Auto-import**: Set cachefile for boot-time pool import
+
+{{< callout type="success" >}}
+**Golden Rules**:
+1. Use whole disks with `/dev/disk/by-id/` for simplicity and performance
+2. Enable compression: `zfs set compression=lz4` (free space savings!)
+3. Schedule monthly scrubs for data integrity
+4. ECC RAM recommended for production systems
+{{< /callout >}}
 
 ### Auto-Import on Boot
 ```bash
 sudo zpool set cachefile=/etc/zfs/zpool.cache tank
 ```
 
-### Automated Snapshots
+<details>
+<summary><strong>Automated Snapshots</strong></summary>
+
 ```bash
 # Daily snapshots via cron
 0 0 * * * /sbin/zfs snapshot tank/data@daily-$(date +\%Y\%m\%d)
@@ -807,8 +824,11 @@ sudo zpool set cachefile=/etc/zfs/zpool.cache tank
 # Keep only last 7 days
 0 1 * * * /sbin/zfs list -t snapshot -o name | grep daily | head -n -7 | xargs -n 1 /sbin/zfs destroy
 ```
+</details>
 
-### Monitor Pool Health
+<details>
+<summary><strong>Monitor Pool Health</strong></summary>
+
 ```bash
 # Check for errors
 zpool status -x
@@ -819,18 +839,22 @@ zpool status -v tank
 # I/O statistics
 zpool iostat tank 1
 ```
+</details>
 
-## Troubleshooting
+## 🔧 Troubleshooting
 
-### Pool UUID vs PARTUUID Confusion
+<details>
+<summary><strong>Pool UUID vs PARTUUID Confusion</strong></summary>
 
 **Problem**: Confusion between pool UUID and partition PARTUUID.
 
 **Solution**: 
 - Pool UUID (from `blkid`, `TYPE="zfs_member"`): Identifies the ZFS pool, shared by all members
 - PARTUUID: Unique identifier for each GPT partition, used in `zpool` commands
+</details>
 
-### Device Not Found After Reboot
+<details>
+<summary><strong>Device Not Found After Reboot</strong></summary>
 
 **Problem**: Pool shows `/dev/sdb` but device is now `/dev/sdc`.
 
@@ -839,8 +863,10 @@ zpool iostat tank 1
 sudo zpool export tank
 sudo zpool import -d /dev/disk/by-id tank  # or by-partuuid for partitions
 ```
+</details>
 
-### Cannot Replace Device
+<details>
+<summary><strong>Cannot Replace Device</strong></summary>
 
 **Problem**: Replace command fails with "device is in use".
 
@@ -848,8 +874,10 @@ sudo zpool import -d /dev/disk/by-id tank  # or by-partuuid for partitions
 - Ensure you're referencing the correct identifier from `zpool status`
 - For partition pools, use PARTUUID shown in status
 - For whole disk pools, use by-id path shown in status
+</details>
 
-### Disk/Partition In Use
+<details>
+<summary><strong>Disk/Partition In Use</strong></summary>
 
 **Problem**: Cannot create pool, device busy.
 
@@ -858,8 +886,10 @@ sudo zpool import -d /dev/disk/by-id tank  # or by-partuuid for partitions
 sudo lsof /dev/vdb1
 sudo wipefs -a /dev/vdb1  # Clear old filesystem signatures
 ```
+</details>
 
-### Pool Not Importing After System Move
+<details>
+<summary><strong>Pool Not Importing After System Move</strong></summary>
 
 **Problem**: Pool not visible after moving disks to new system.
 
@@ -871,8 +901,10 @@ sudo zpool import
 # Import by pool ID
 sudo zpool import -d /dev/disk/by-id [pool-id]
 ```
+</details>
 
-### PARTUUID Not Showing in zpool status
+<details>
+<summary><strong>PARTUUID Not Showing in zpool status</strong></summary>
 
 **Problem**: Status shows `/dev/vdb1` instead of PARTUUID.
 
@@ -882,8 +914,17 @@ sudo zpool import -d /dev/disk/by-id [pool-id]
 sudo zpool export tank
 sudo zpool import -d /dev/disk/by-partuuid tank
 ```
+</details>
 
-## Resources
+## 🎯 Use Cases
+
+- **Home NAS**: Mirror pools for media storage with snapshots
+- **Server Storage**: RAID-Z for enterprise data with redundancy
+- **Backup Systems**: Snapshots for point-in-time recovery
+- **Virtual Machines**: Datasets with compression for VM images
+- **Development**: Fast snapshots for testing and rollback
+
+## 📖 Resources
 
 - [OpenZFS Documentation](https://openzfs.github.io/openzfs-docs/)
 - [Ubuntu ZFS Guide](https://ubuntu.com/server/docs/zfs)

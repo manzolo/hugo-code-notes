@@ -328,3 +328,10 @@
   50% { box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
   100% { box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 }
+
+.dark .callout {
+  --primary: rgb(143, 161, 240); /* blu-grigio pastello solo nei callout */
+  --link-color: #82aaff;
+  --link-hover-color: #b4ccff;
+  --highlight-bg: rgba(255, 215, 0, 0.18);
+}
