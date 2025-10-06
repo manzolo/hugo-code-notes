@@ -15,6 +15,8 @@ This blog was born to:
 - **Create** a useful resource for the community
 - **Learn** through the writing process
 
+{{< buymeacoffee >}}
+
 ## 🔍 Looking for something specific?
 
 Use the [**search function**](/search/) to quickly find tutorials and guides on specific topics, or explore by [**categories**](/categories/) or [**tags**](/tags/) or [**posts**](/posts/).
