@@ -5,7 +5,7 @@ lastmod: 2025-10-11T20:43:00+02:00
 draft: false
 author: "Manzolo"
 tags: ["docker", "development", "containers", "tool", "open-source"]
-categories: ["development"]
+categories: ["development", "docker"]
 series: ["Docker"]
 weight: 1
 ShowToc: true
