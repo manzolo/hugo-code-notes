@@ -439,13 +439,13 @@ Now you're ready to launch:
 
 ```bash
 # Build and start the container
-docker-compose up -d
+docker compose up -d
 
 # Check status
-docker-compose ps
+docker compose ps
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 ```
 
 The first startup will:
@@ -676,7 +676,7 @@ Ensure the package was published:
 Check logs for details:
 
 ```bash
-docker-compose logs ubuntu-repo
+docker compose logs ubuntu-repo
 ```
 
 Common issues:
