@@ -744,5 +744,6 @@ This setup is perfect for distributing internal tools, managing custom software 
 - [Debian Package Guide](https://www.debian.org/doc/manuals/maint-guide/)
 - [Ubuntu Packaging Guide](https://packaging.ubuntu.com/html/)
 - [Docker Documentation](https://docs.docker.com/)
+- [Try yourself](https://github.com/manzolo/ubuntu-repo-docker)
 
 Happy packaging! 🚀
