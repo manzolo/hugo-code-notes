@@ -4,9 +4,9 @@ date: 2025-10-04T11:00:00+02:00
 lastmod: 2025-10-04T11:00:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "mail-server", "postfix", "dovecot", "smtp", "pop3", "imap", "email", "server", "networking", "security", "tutorial"]
-categories: ["linux", "tutorial"]
-series: ["Linux Essentials"]
+tags: ["mail-server", "postfix", "dovecot", "email", "configuration"]
+categories: ["Networking & Security"]
+series: ["Networking Fundamentals"]
 weight: 9
 ShowToc: true
 TocOpen: false

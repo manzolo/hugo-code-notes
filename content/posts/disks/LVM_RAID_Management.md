@@ -4,9 +4,9 @@ date: 2025-10-03T14:01:00+02:00
 lastmod: 2025-10-03T14:01:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "lvm", "raid", "storage", "tutorial"]
-categories: ["linux", "tutorial"]
-series: ["Linux Essentials"]
+tags: ["lvm", "raid", "storage", "mdadm", "volume-management"]
+categories: ["Storage & Disks"]
+series: ["Linux Storage Deep Dive"]
 weight: 4
 ShowToc: true
 TocOpen: false

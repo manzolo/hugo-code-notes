@@ -1,4 +1,4 @@
-.PHONY: help dev build serve export import clean new-post restart deploy-remote switch-env auto-switch-dev auto-switch-prod
+.PHONY: help dev build serve export import clean new-post restart deploy-remote switch-env auto-switch-dev auto-switch-prod update-theme update-theme-version rollback-theme theme-info theme-list
 
 # Load environment variables
 ifneq (,$(wildcard ./.env))
@@ -53,6 +53,13 @@ help:
 	@echo "  make clean                     - Clean build files"
 	@echo "  make backup                    - Create backup"
 	@echo "  make stop                      - Stop all containers"
+	@echo ""
+	@echo "🎨 Theme Management:"
+	@echo "  make theme-info                - Show current theme version"
+	@echo "  make theme-list                - List available theme versions"
+	@echo "  make update-theme              - Update theme to latest version"
+	@echo "  make update-theme-version      - Update to specific version (VERSION=v7.0)"
+	@echo "  make rollback-theme            - Rollback theme to previous commit"
 
 # Auto-switch to dev environment
 auto-switch-dev:
@@ -274,3 +281,142 @@ dev-to-prod: auto-switch-dev
 	@read -p "Press Enter when ready to deploy to production..."
 	@$(MAKE) deploy-remote
 	@echo "✅ Workflow completed!"
+
+# ============================================
+# Theme Management
+# ============================================
+
+# Show current theme information
+theme-info:
+	@echo "🎨 PaperMod Theme Information"
+	@echo "============================="
+	@echo ""
+	@echo "Current branch:"
+	@cd themes/PaperMod && git branch --show-current
+	@echo ""
+	@echo "Current commit:"
+	@cd themes/PaperMod && git log -1 --oneline
+	@echo ""
+	@echo "Current tag (if any):"
+	@cd themes/PaperMod && git describe --tags --abbrev=0 2>/dev/null || echo "No tag found (using branch)"
+	@echo ""
+	@echo "Remote repository:"
+	@cd themes/PaperMod && git remote -v | grep fetch
+
+# List available theme versions
+theme-list:
+	@echo "📋 Available PaperMod Versions"
+	@echo "=============================="
+	@echo ""
+	@echo "Fetching latest versions..."
+	@cd themes/PaperMod && git fetch --tags origin 2>/dev/null
+	@echo ""
+	@echo "Latest 10 releases:"
+	@cd themes/PaperMod && git tag -l --sort=-version:refname | head -10
+	@echo ""
+	@echo "💡 Use: make update-theme-version VERSION=v7.0"
+
+# Update theme to latest version
+update-theme:
+	@echo "🔄 Updating PaperMod theme to latest version..."
+	@echo ""
+	@echo "📌 Current version:"
+	@cd themes/PaperMod && git log -1 --oneline
+	@echo ""
+	@read -p "⚠️  This will update to the latest master. Continue? [y/N] " confirm; \
+	if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
+		echo "❌ Update cancelled"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "💾 Creating backup of current version..."
+	@cd themes/PaperMod && git log -1 --format="%H" > /tmp/papermod-backup.txt
+	@echo "Backup ref saved to: /tmp/papermod-backup.txt"
+	@echo ""
+	@echo "⬇️  Fetching latest changes..."
+	@cd themes/PaperMod && git fetch origin
+	@echo ""
+	@echo "🔄 Updating theme..."
+	@cd themes/PaperMod && git checkout master && git pull origin master
+	@echo ""
+	@echo "✅ Theme updated successfully!"
+	@echo ""
+	@echo "📌 New version:"
+	@cd themes/PaperMod && git log -1 --oneline
+	@echo ""
+	@echo "🧪 Testing build..."
+	@$(MAKE) build
+	@echo ""
+	@echo "✅ Build successful!"
+	@echo "💡 Test your site with: make dev"
+	@echo "💡 To rollback: make rollback-theme"
+
+# Update theme to specific version
+update-theme-version:
+	@if [ -z "$(VERSION)" ]; then \
+		echo "❌ Please specify VERSION: make update-theme-version VERSION=v7.0"; \
+		echo ""; \
+		echo "Available versions:"; \
+		cd themes/PaperMod && git fetch --tags origin 2>/dev/null && git tag -l --sort=-version:refname | head -10; \
+		exit 1; \
+	fi
+	@echo "🔄 Updating PaperMod theme to $(VERSION)..."
+	@echo ""
+	@echo "📌 Current version:"
+	@cd themes/PaperMod && git log -1 --oneline
+	@echo ""
+	@echo "💾 Creating backup of current version..."
+	@cd themes/PaperMod && git log -1 --format="%H" > /tmp/papermod-backup.txt
+	@echo "Backup ref saved to: /tmp/papermod-backup.txt"
+	@echo ""
+	@echo "⬇️  Fetching tags..."
+	@cd themes/PaperMod && git fetch --tags origin
+	@echo ""
+	@echo "🔄 Checking out $(VERSION)..."
+	@cd themes/PaperMod && git checkout tags/$(VERSION) 2>/dev/null || \
+		(echo "❌ Version $(VERSION) not found" && exit 1)
+	@echo ""
+	@echo "✅ Theme updated to $(VERSION)!"
+	@echo ""
+	@echo "📌 Current version:"
+	@cd themes/PaperMod && git log -1 --oneline
+	@echo ""
+	@echo "🧪 Testing build..."
+	@$(MAKE) build
+	@echo ""
+	@echo "✅ Build successful!"
+	@echo "💡 Test your site with: make dev"
+	@echo "💡 To rollback: make rollback-theme"
+
+# Rollback theme to previous version
+rollback-theme:
+	@if [ ! -f /tmp/papermod-backup.txt ]; then \
+		echo "❌ No backup found"; \
+		echo ""; \
+		echo "Available recent commits:"; \
+		cd themes/PaperMod && git log -5 --oneline; \
+		echo ""; \
+		echo "💡 Manually rollback with:"; \
+		echo "   cd themes/PaperMod && git checkout <commit-hash>"; \
+		exit 1; \
+	fi
+	@echo "🔄 Rolling back PaperMod theme..."
+	@echo ""
+	@echo "📌 Current version:"
+	@cd themes/PaperMod && git log -1 --oneline
+	@echo ""
+	@backup_ref=$$(cat /tmp/papermod-backup.txt); \
+	echo "⬅️  Rolling back to: $$backup_ref"; \
+	cd themes/PaperMod && git checkout $$backup_ref
+	@echo ""
+	@echo "✅ Theme rolled back successfully!"
+	@echo ""
+	@echo "📌 Current version:"
+	@cd themes/PaperMod && git log -1 --oneline
+	@echo ""
+	@echo "🧪 Testing build..."
+	@$(MAKE) build
+	@echo ""
+	@echo "✅ Build successful!"
+	@rm -f /tmp/papermod-backup.txt
+	@echo "💡 Test your site with: make dev"

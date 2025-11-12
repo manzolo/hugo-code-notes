@@ -4,9 +4,9 @@ date: 2025-09-27T15:26:00+02:00
 lastmod: 2025-09-27T15:26:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["windows", "boot", "repair", "cmd", "tutorial"]
-categories: ["windows", "tutorial"]
-series: ["Windows Essentials"]
+tags: ["boot-repair", "windows", "dual-boot", "grub", "troubleshooting"]
+categories: ["Linux Administration"]
+series: ["System Administration Basics"]
 weight: 1
 ShowToc: true
 TocOpen: false

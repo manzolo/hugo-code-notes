@@ -4,9 +4,9 @@ date: 2025-11-08T18:30:00+02:00
 lastmod: 2025-11-08T18:30:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["ubuntu", "docker", "repository", "packaging", "apt"]
-categories: ["linux"]
-series: ["Docker"]
+tags: ["ppa", "ubuntu", "repository", "apt", "custom-packages"]
+categories: ["Package Management"]
+series: ["System Administration Basics"]
 weight: 1
 ShowToc: true
 TocOpen: false

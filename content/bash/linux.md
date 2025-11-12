@@ -5,9 +5,9 @@ date: 2025-09-26T10:00:00+01:00
 lastmod: 2025-09-26T10:00:00+01:00
 draft: false
 author: "Manzolo"
-tags: ["bash", "linux", "terminal", "commands", "tutorial"]
-categories: ["bash", "tutorial", "linux"]
-series: ["SysAdmin"]
+tags: ["linux", "bash", "commands", "system-administration", "reference"]
+categories: ["Command Reference"]
+series: ["Command Line Mastery"]
 weight: 1
 ShowToc: true
 TocOpen: false

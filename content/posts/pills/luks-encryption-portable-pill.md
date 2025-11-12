@@ -3,9 +3,9 @@ title: "LUKS Encrypted Container"
 date: 2025-10-05T15:30:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "encryption", "luks", "cryptsetup", "security", "quick-pill"]
-categories: ["linux", "quick-pills"]
-series: ["Quick Pills"]
+tags: ["luks", "encryption", "portable", "usb", "quick-tip"]
+categories: ["Quick Pills"]
+series: ["Quick Pills Collection"]
 weight: 3
 ShowToc: false
 TocOpen: false

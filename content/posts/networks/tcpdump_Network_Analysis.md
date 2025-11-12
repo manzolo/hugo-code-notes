@@ -4,9 +4,9 @@ date: 2025-10-04T13:35:00+02:00
 lastmod: 2025-10-04T13:35:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "tcpdump", "networking", "traffic analysis", "tutorial"]
-categories: ["linux", "tutorial"]
-series: ["Linux Essentials"]
+tags: ["tcpdump", "network-analysis", "packet-capture", "cli", "troubleshooting"]
+categories: ["Networking & Security"]
+series: ["Networking Fundamentals"]
 weight: 6
 ShowToc: true
 TocOpen: false

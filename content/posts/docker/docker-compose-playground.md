@@ -4,9 +4,9 @@ date: 2025-10-11T20:43:00+02:00
 lastmod: 2025-10-11T20:43:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["docker", "development", "containers", "tool", "open-source"]
-categories: ["development", "docker"]
-series: ["Docker"]
+tags: ["docker-compose", "containers", "yaml", "tutorial"]
+categories: ["Docker & Containers"]
+series: ["Docker Essentials"]
 weight: 1
 ShowToc: true
 TocOpen: false

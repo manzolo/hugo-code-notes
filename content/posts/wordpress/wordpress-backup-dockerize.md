@@ -1,8 +1,9 @@
 ---
 title: "Wordpress backing up (files and database) and dockerizing"
 date: 2025-09-27T09:20:30Z
-categories: ["wordpress", "docker"]
-tags: ["wordpress", "backup"]
+categories: ["Docker & Containers"]
+series: ["Docker Essentials"]
+tags: ["wordpress", "backup", "docker", "mysql", "migration"]
 draft: false
 ---
 

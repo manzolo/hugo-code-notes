@@ -1,7 +1,7 @@
 services:
   # Development server with live reload
   dev:
-    image: hugomods/hugo:go-0.150.0
+    image: hugomods/hugo:go-0.152.2
     container_name: hugo-dev
     command: hugo server --bind 0.0.0.0 --port 1313 --baseURL ${SITE_BASE_URL:-http://localhost:8080/} --appendPort=false --buildDrafts --buildFuture
     ports:
@@ -20,7 +20,7 @@ services:
 
   # Build service (creates content in public/)
   build:
-    image: hugomods/hugo:go-0.150.0
+    image: hugomods/hugo:go-0.152.2
     container_name: hugo-build
     command: hugo --baseURL="${SITE_BASE_URL:-http://localhost:8080/}"
     volumes:
@@ -92,7 +92,7 @@ services:
 
   # Optional: File watcher for auto-rebuild
   watcher:
-    image: hugomods/hugo:go-0.150.0
+    image: hugomods/hugo:go-0.152.2
     container_name: hugo-watcher
     volumes:
       - ./:/src

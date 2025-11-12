@@ -3,9 +3,9 @@ title: "Windows System Repair and Maintenance"
 date: 2025-10-05T15:00:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["windows", "repair", "maintenance", "dism", "sfc", "quick-pill"]
-categories: ["windows", "quick-pills"]
-series: ["Quick Pills"]
+tags: ["windows", "repair", "troubleshooting", "boot", "quick-tip"]
+categories: ["Quick Pills"]
+series: ["Quick Pills Collection"]
 weight: 2
 ShowToc: false
 TocOpen: false

@@ -3,9 +3,9 @@ title: "Batch Image Optimization"
 date: 2025-10-05T16:00:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "images", "optimization", "jpegoptim", "web", "quick-pill"]
-categories: ["linux", "quick-pills"]
-series: ["Quick Pills"]
+tags: ["images", "optimization", "compression", "web", "quick-tip"]
+categories: ["Quick Pills"]
+series: ["Quick Pills Collection"]
 weight: 4
 ShowToc: false
 TocOpen: false

@@ -4,9 +4,9 @@ date: 2025-09-27T15:36:00+02:00
 lastmod: 2025-09-27T15:36:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "debian", "ubuntu", "chroot", "repair", "tutorial"]
-categories: ["linux", "tutorial"]
-series: ["Linux Essentials"]
+tags: ["chroot", "recovery", "rescue", "system-repair", "troubleshooting"]
+categories: ["Linux Administration"]
+series: ["System Administration Basics"]
 weight: 2
 ShowToc: true
 TocOpen: false

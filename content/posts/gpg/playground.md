@@ -4,9 +4,9 @@ date: 2025-09-28T00:00:00+02:00
 lastmod: 2025-09-28T00:00:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["bash", "gpg", "encryption", "security", "tutorial", "script"]
-categories: ["bash", "tutorial"]
-series: ["Bash Essentials"]
+tags: ["gpg", "encryption", "security", "pgp", "keys"]
+categories: ["Networking & Security"]
+series: ["System Administration Basics"]
 weight: 1
 ShowToc: true
 TocOpen: false

@@ -4,9 +4,9 @@ date: 2025-10-04T00:26:00+02:00
 lastmod: 2025-10-04T00:26:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "rdp", "xrdp", "xfce", "remote-desktop", "tutorial"]
-categories: ["linux", "tutorial"]
-series: ["Linux Essentials"]
+tags: ["rdp", "xrdp", "remote-desktop", "ubuntu", "installation"]
+categories: ["Linux Administration"]
+series: ["System Administration Basics"]
 weight: 7
 ShowToc: true
 TocOpen: false

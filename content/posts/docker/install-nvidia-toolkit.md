@@ -5,8 +5,9 @@ date: 2025-11-04T09:00:00+02:00
 lastmod: 2025-11-04T09:00:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["nvidia", "container-toolkit", "docker", "gpu", "ollama", "installation"]
-categories: ["installation", "docker", "gpu"]
+tags: ["nvidia", "gpu", "container-toolkit", "installation", "cuda"]
+categories: ["Docker & Containers"]
+series: ["Docker Essentials"]
 weight: 1
 ShowToc: true
 TocOpen: false

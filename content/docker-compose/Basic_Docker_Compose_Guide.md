@@ -4,8 +4,8 @@ date: 2025-10-11T09:55:00+02:00
 lastmod: 2025-10-11T09:55:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["docker", "compose", "containerization", "beginner", "tutorial"]
-categories: ["docker", "tutorial"]
+tags: ["docker-compose", "beginner", "nodejs", "postgresql", "tutorial"]
+categories: ["Docker & Containers"]
 series: ["Docker Essentials"]
 weight: 2
 ShowToc: true

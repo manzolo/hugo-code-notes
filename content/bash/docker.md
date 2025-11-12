@@ -5,9 +5,9 @@ date: 2025-09-26T10:00:00+01:00
 lastmod: 2025-09-26T10:00:00+01:00
 draft: false
 author: "Manzolo"
-tags: ["bash", "linux", "terminal", "commands", "tutorial"]
-categories: ["bash", "tutorial", "docker"]
-series: ["Docker"]
+tags: ["docker", "docker-compose", "containers", "commands", "cheatsheet"]
+categories: ["Command Reference"]
+series: ["Docker Essentials"]
 weight: 1
 ShowToc: true
 TocOpen: false

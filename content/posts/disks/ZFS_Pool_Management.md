@@ -4,9 +4,9 @@ date: 2025-10-03T10:00:00+02:00
 lastmod: 2025-10-04T11:35:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "zfs", "storage", "pool", "tutorial"]
-categories: ["linux", "tutorial"]
-series: ["Linux Essentials"]
+tags: ["zfs", "storage", "pool-management", "snapshots", "raid"]
+categories: ["Storage & Disks"]
+series: ["Linux Storage Deep Dive"]
 weight: 3
 ShowToc: true
 TocOpen: false

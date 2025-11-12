@@ -13,42 +13,57 @@
     {{ .Content }}
     <!-- Filter Controls -->
     <div class="archive-filters">
-      <div class="filter-section">
-        <label for="categorySelect">Filter by Category:</label>
-        <select id="categorySelect" class="filter-select">
-          <option value="">All Categories</option>
-          {{- range .Site.Taxonomies.categories }}
-
-          <option value="{{ .Page.Title }}">{{ .Page.Title | title }} ({{ .Count }})</option>
-          {{- end }}
-        </select>
+      <div class="filter-header">
+        <h3>🔍 Filter & Search</h3>
+        <button id="clearFilters" class="clear-filters">Clear All</button>
       </div>
 
-      <div class="filter-section">
-        <label for="tagSelect">Filter by Tag:</label>
-        <select id="tagSelect" class="filter-select">
-          <option value="">All Tags</option>
-          {{- range first 20 .Site.Taxonomies.tags.ByCount }}
-          <option value="{{ .Page.Title }}">{{ .Page.Title | title }} ({{ .Count }})</option>
-          {{- end }}
-        </select>
-      </div>
+      <div class="filter-grid">
+        <div class="filter-section">
+          <label for="categorySelect">📁 Category</label>
+          <select id="categorySelect" class="filter-select">
+            <option value="">All Categories</option>
+            {{- range .Site.Taxonomies.categories }}
+            <option value="{{ .Page.Title }}">{{ .Page.Title }} ({{ .Count }})</option>
+            {{- end }}
+          </select>
+        </div>
 
-      <div class="filter-section">
-        <label for="sortSelect">Sort by:</label>
-        <select id="sortSelect" class="filter-select">
-          <option value="date-desc">Date (Newest)</option>
-          <option value="date-asc">Date (Oldest)</option>
-          <option value="title">Title A-Z</option>
-          <option value="title-desc">Title Z-A</option>
-        </select>
-      </div>
+        <div class="filter-section">
+          <label for="seriesSelect">📚 Series</label>
+          <select id="seriesSelect" class="filter-select">
+            <option value="">All Series</option>
+            {{- range .Site.Taxonomies.series }}
+            <option value="{{ .Page.Title }}">{{ .Page.Title }} ({{ .Count }})</option>
+            {{- end }}
+          </select>
+        </div>
 
-      <div class="filter-section">
-        <input type="text" id="searchPosts" placeholder="Search posts..." class="search-filter">
-      </div>
+        <div class="filter-section">
+          <label for="tagSelect">🏷️ Tag</label>
+          <select id="tagSelect" class="filter-select">
+            <option value="">All Tags</option>
+            {{- range first 20 .Site.Taxonomies.tags.ByCount }}
+            <option value="{{ .Page.Title }}">{{ .Page.Title }} ({{ .Count }})</option>
+            {{- end }}
+          </select>
+        </div>
 
-      <button id="clearFilters" class="clear-filters">Clear All Filters</button>
+        <div class="filter-section">
+          <label for="sortSelect">⏱️ Sort by</label>
+          <select id="sortSelect" class="filter-select">
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="title">Title A-Z</option>
+            <option value="title-desc">Title Z-A</option>
+          </select>
+        </div>
+
+        <div class="filter-section search-section">
+          <label for="searchPosts">🔎 Search</label>
+          <input type="text" id="searchPosts" placeholder="Search posts..." class="search-filter">
+        </div>
+      </div>
     </div>
 
     <!-- Archive Statistics -->
@@ -84,9 +99,10 @@
         <div class="posts-grid">
           {{- range .Pages }}
           {{- if eq .Type "posts" }}
-          <article class="archive-post" 
+          <article class="archive-post"
                    data-title="{{ .Title | lower }}"
                    data-categories="{{ if .Params.categories }}{{ delimit .Params.categories "," | lower }}{{ end }}"
+                   data-series="{{ if .Params.series }}{{ delimit .Params.series "," | lower }}{{ end }}"
                    data-tags="{{ if .Params.tags }}{{ delimit .Params.tags "," | lower }}{{ end }}"
                    data-date="{{ .Date.Format "2006-01-02" }}">
             <div class="post-card">
@@ -172,16 +188,35 @@
 
 /* Archive filters */
 .archive-filters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
   margin-bottom: 2rem;
-  padding: 2rem;
+  padding: 1.5rem;
   background: var(--entry);
   border: 1px solid var(--border);
   border-radius: 12px;
   position: relative;
   z-index: 50;
+}
+
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--border);
+}
+
+.filter-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: var(--content);
+  font-weight: 700;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
 }
 
 .filter-section {
@@ -190,10 +225,17 @@
   gap: 0.5rem;
 }
 
+.search-section {
+  grid-column: span 2;
+}
+
 .filter-section label {
   font-weight: 600;
   color: var(--content);
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .filter-select, .search-filter {
@@ -215,22 +257,27 @@
 }
 
 .clear-filters {
-  padding: 0.75rem 1.5rem;
+  padding: 0.625rem 1.25rem;
   background: var(--primary);
   color: var(--theme);
   border: none;
   border-radius: 8px;
   font-weight: 600;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  align-self: end;
+  transition: all 0.2s ease;
   position: relative;
   z-index: 5;
+  white-space: nowrap;
 }
 
 .clear-filters:hover {
   background: var(--primary-dark, var(--primary));
-  transform: translateY(-2px);
+  transform: scale(1.05);
+}
+
+.clear-filters:active {
+  transform: scale(0.98);
 }
 
 /* Archive stats */
@@ -492,10 +539,31 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .archive-filters {
-    grid-template-columns: 1fr;
-    padding: 1.5rem;
+    padding: 1.25rem;
   }
-  
+
+  .filter-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .filter-header h3 {
+    text-align: center;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .search-section {
+    grid-column: span 1;
+  }
+
+  .clear-filters {
+    width: 100%;
+  }
+
   .archive-stats {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -642,6 +710,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const categorySelect = document.getElementById('categorySelect');
+  const seriesSelect = document.getElementById('seriesSelect');
   const tagSelect = document.getElementById('tagSelect');
   const sortSelect = document.getElementById('sortSelect');
   const searchInput = document.getElementById('searchPosts');
@@ -649,49 +718,56 @@ document.addEventListener('DOMContentLoaded', function() {
   const visiblePostsCounter = document.getElementById('visiblePosts');
   const noResults = document.getElementById('noResults');
   const archiveTimeline = document.getElementById('archiveTimeline');
-  
+
   let allPosts = [];
   let filteredPosts = [];
-  
+
   // Initialize
   function init() {
     allPosts = Array.from(document.querySelectorAll('.archive-post'));
     filteredPosts = [...allPosts];
     updateVisibleCount();
   }
-  
+
   // Filter functions
   function filterPosts() {
     const category = categorySelect.value.toLowerCase();
+    const series = seriesSelect.value.toLowerCase();
     const tag = tagSelect.value.toLowerCase();
     const searchTerm = searchInput.value.toLowerCase();
-    
+
     filteredPosts = allPosts.filter(post => {
       const postCategories = post.dataset.categories || '';
+      const postSeries = post.dataset.series || '';
       const postTags = post.dataset.tags || '';
       const postTitle = post.dataset.title || '';
-      
+
       // Category filter
       if (category && !postCategories.includes(category)) {
         return false;
       }
-      
+
+      // Series filter
+      if (series && !postSeries.includes(series)) {
+        return false;
+      }
+
       // Tag filter
       if (tag && !postTags.includes(tag)) {
         return false;
       }
-      
+
       // Search filter
       if (searchTerm) {
-        const searchableText = `${postTitle} ${postCategories} ${postTags}`;
+        const searchableText = `${postTitle} ${postCategories} ${postSeries} ${postTags}`;
         if (!searchableText.includes(searchTerm)) {
           return false;
         }
       }
-      
+
       return true;
     });
-    
+
     displayPosts();
     updateVisibleCount();
     checkEmptyResults();
@@ -771,18 +847,20 @@ document.addEventListener('DOMContentLoaded', function() {
   
   function clearAllFilters() {
     categorySelect.value = '';
+    seriesSelect.value = '';
     tagSelect.value = '';
     searchInput.value = '';
     sortSelect.value = 'date-desc';
-    
+
     filteredPosts = [...allPosts];
     sortPosts();
     updateVisibleCount();
     checkEmptyResults();
   }
-  
+
   // Event listeners
   categorySelect.addEventListener('change', filterPosts);
+  seriesSelect.addEventListener('change', filterPosts);
   tagSelect.addEventListener('change', filterPosts);
   sortSelect.addEventListener('change', () => {
     filterPosts();

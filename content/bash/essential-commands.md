@@ -5,9 +5,9 @@ date: 2025-09-25T10:00:00+01:00
 lastmod: 2025-09-25T10:00:00+01:00
 draft: false
 author: "Manzolo"
-tags: ["bash", "linux", "terminal", "commands", "beginner", "tutorial"]
-categories: ["bash", "tutorial"]
-series: ["Bash Essentials"]
+tags: ["bash", "linux", "commands", "terminal", "reference"]
+categories: ["Command Reference"]
+series: ["Command Line Mastery"]
 weight: 1
 cover:
     image: "/img/bash-cover.png"

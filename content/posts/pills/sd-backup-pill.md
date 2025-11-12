@@ -3,9 +3,9 @@ title: "SD Card Backup and Restore"
 date: 2025-10-05T14:30:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "backup", "raspberry-pi", "dd", "quick-pill"]
-categories: ["linux", "quick-pills"]
-series: ["Quick Pills"]
+tags: ["backup", "sd-card", "dd", "raspberry-pi", "quick-tip"]
+categories: ["Quick Pills"]
+series: ["Quick Pills Collection"]
 weight: 1
 ShowToc: false
 TocOpen: false

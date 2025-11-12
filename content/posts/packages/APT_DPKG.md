@@ -4,9 +4,9 @@ date: 2025-10-04T12:00:00+02:00
 lastmod: 2025-10-04T12:50:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "apt", "dpkg", "package management", "tutorial"]
-categories: ["linux", "tutorial"]
-series: ["Linux Essentials"]
+tags: ["apt", "dpkg", "debian", "ubuntu", "package-management"]
+categories: ["Package Management"]
+series: ["System Administration Basics"]
 weight: 4
 ShowToc: true
 TocOpen: false

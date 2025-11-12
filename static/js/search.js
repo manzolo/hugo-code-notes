@@ -6,14 +6,25 @@ document.addEventListener('DOMContentLoaded', function() {
   const resultsCount = document.getElementById('resultsCount');
   const quickTags = document.getElementById('quickTags');
   const noResults = document.getElementById('noResults');
+  const clearBtn = document.getElementById('clearSearch');
   const tagButtons = document.querySelectorAll('.tag-btn');
-  
+
   let searchData = [];
-  
+
   // Check if all required elements exist
   if (!searchInput || !searchResults || !searchStats || !resultsCount || !quickTags || !noResults) {
     console.error('Missing required DOM elements for search functionality');
     return;
+  }
+
+  // Clear button functionality
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      searchInput.value = '';
+      searchInput.focus();
+      showDefault();
+      clearBtn.style.display = 'none';
+    });
   }
   
   // Load search data
@@ -39,7 +50,12 @@ document.addEventListener('DOMContentLoaded', function() {
   searchInput.addEventListener('input', function() {
     clearTimeout(searchTimeout);
     const query = this.value.trim();
-    
+
+    // Show/hide clear button
+    if (clearBtn) {
+      clearBtn.style.display = query.length > 0 ? 'flex' : 'none';
+    }
+
     if (query.length > 0) {
       searchTimeout = setTimeout(() => performSearch(query), 300);
     } else {
@@ -52,6 +68,13 @@ document.addEventListener('DOMContentLoaded', function() {
     button.addEventListener('click', function() {
       const query = this.dataset.query;
       searchInput.value = query;
+      searchInput.focus();
+
+      // Show clear button
+      if (clearBtn) {
+        clearBtn.style.display = 'flex';
+      }
+
       performSearch(query);
     });
   });

@@ -4,9 +4,9 @@ date: 2025-10-04T11:00:00+02:00
 lastmod: 2025-10-04T11:00:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "openvpn", "vpn", "server", "networking", "security", "tutorial"]
-categories: ["linux", "tutorial"]
-series: ["Linux Essentials"]
+tags: ["openvpn", "vpn", "server", "security", "encryption", "tutorial"]
+categories: ["Networking & Security"]
+series: ["Networking Fundamentals"]
 weight: 8
 ShowToc: true
 TocOpen: false

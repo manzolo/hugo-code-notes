@@ -4,8 +4,8 @@ date: 2025-10-11T09:00:00+02:00
 lastmod: 2025-10-11T09:00:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["docker", "compose", "containerization", "devops", "tutorial"]
-categories: ["docker", "tutorial"]
+tags: ["docker-compose", "advanced", "networking", "volumes", "tutorial"]
+categories: ["Docker & Containers"]
 series: ["Docker Essentials"]
 weight: 1
 ShowToc: true

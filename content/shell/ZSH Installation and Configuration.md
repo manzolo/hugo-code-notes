@@ -4,9 +4,9 @@ date: 2025-10-04T00:22:00+02:00
 lastmod: 2025-10-04T00:22:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "zsh", "shell", "oh-my-zsh", "powerlevel10k", "tutorial"]
-categories: ["linux", "tutorial"]
-series: ["Linux Essentials"]
+tags: ["zsh", "shell", "oh-my-zsh", "terminal", "configuration"]
+categories: ["Linux Administration"]
+series: ["System Administration Basics"]
 weight: 6
 ShowToc: true
 TocOpen: false

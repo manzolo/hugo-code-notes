@@ -4,9 +4,9 @@ date: 2025-10-04T13:25:00+02:00
 lastmod: 2025-10-04T13:25:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "wireshark", "networking", "traffic analysis", "tutorial"]
-categories: ["linux", "tutorial"]
-series: ["Linux Essentials"]
+tags: ["wireshark", "network-analysis", "packet-capture", "troubleshooting", "security"]
+categories: ["Networking & Security"]
+series: ["Networking Fundamentals"]
 weight: 5
 ShowToc: true
 TocOpen: false

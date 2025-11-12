@@ -3,9 +3,9 @@ title: "APT Package Repository Management Guide"
 date: 2025-10-05T17:30:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "apt", "debian", "ubuntu", "packages", "repository", "ppa"]
-categories: ["linux", "tutorial"]
-series: ["Linux Essentials"]
+tags: ["apt", "repository", "sources", "gpg", "configuration"]
+categories: ["Package Management"]
+series: ["System Administration Basics"]
 weight: 4
 ShowToc: true
 TocOpen: false

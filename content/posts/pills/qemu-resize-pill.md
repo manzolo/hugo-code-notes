@@ -3,9 +3,9 @@ title: "QEMU/VirtualBox Disk Resize"
 date: 2025-10-05T16:30:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "qemu", "virtualbox", "virtualization", "disk", "quick-pill"]
-categories: ["linux", "quick-pills"]
-series: ["Quick Pills"]
+tags: ["qemu", "resize", "disk", "virtualization", "quick-tip"]
+categories: ["Quick Pills"]
+series: ["Quick Pills Collection"]
 weight: 5
 ShowToc: false
 TocOpen: false

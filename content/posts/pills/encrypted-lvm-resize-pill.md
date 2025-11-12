@@ -3,9 +3,9 @@ title: "Encrypted LVM Disk Resize (LUKS + LVM)"
 date: 2025-10-05T17:00:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["linux", "qemu", "luks", "lvm", "encryption", "resize", "quick-pill"]
-categories: ["linux", "quick-pills"]
-series: ["Quick Pills"]
+tags: ["lvm", "luks", "resize", "encryption", "quick-tip"]
+categories: ["Quick Pills"]
+series: ["Quick Pills Collection"]
 weight: 6
 ShowToc: false
 TocOpen: false
