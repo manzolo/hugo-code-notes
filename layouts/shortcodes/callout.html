@@ -90,16 +90,21 @@
 
 /* Tema scuro */
 [data-theme="dark"] {
-  --callout-blue-bg: #0d47a1;
-  --callout-blue-border: #42a5f5;
-  --callout-green-bg: #1b5e20;
+  --callout-blue-bg: #1a2942;
+  --callout-blue-border: #64b5f6;
+  --callout-blue-text: #90caf9;
+  --callout-green-bg: #1b3a2f;
   --callout-green-border: #66bb6a;
-  --callout-yellow-bg: #e65100;
-  --callout-yellow-border: #ffb74d;
-  --callout-red-bg: #b71c1c;
-  --callout-red-border: #ef5350;
-  --callout-purple-bg: #4a148c;
+  --callout-green-text: #81c784;
+  --callout-yellow-bg: #3a3420;
+  --callout-yellow-border: #c9b382;
+  --callout-yellow-text: #e8d7a8;
+  --callout-red-bg: #2d2020;
+  --callout-red-border: #d48888;
+  --callout-red-text: #e6a8a8;
+  --callout-purple-bg: #2d1b4e;
   --callout-purple-border: #ba68c8;
+  --callout-purple-text: #ce93d8;
 }
 
 .callout--blue {
@@ -130,6 +135,27 @@
   --callout-bg: var(--callout-purple-bg);
   --callout-border: var(--callout-purple-border);
   color: var(--callout-purple-border);
+}
+
+/* Text colors for dark theme */
+[data-theme="dark"] .callout--blue {
+  color: var(--callout-blue-text);
+}
+
+[data-theme="dark"] .callout--green {
+  color: var(--callout-green-text);
+}
+
+[data-theme="dark"] .callout--yellow {
+  color: var(--callout-yellow-text);
+}
+
+[data-theme="dark"] .callout--red {
+  color: var(--callout-red-text);
+}
+
+[data-theme="dark"] .callout--purple {
+  color: var(--callout-purple-text);
 }
 
 /* Responsive */
