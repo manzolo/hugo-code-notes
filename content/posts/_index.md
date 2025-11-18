@@ -21,16 +21,16 @@ Explore our complete collection of technical guides, tutorials, and quick tips. 
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin: 2rem 0;">
 
-**[🐳 Docker & Containers](/categories/docker-containers/)**
+**[🐳 Docker & Containers](/categories/docker--containers/)**
 Containerization guides, Docker Compose, and deployment workflows
 
 **[🐧 Linux Administration](/categories/linux-administration/)**
 System administration, boot repair, chroot, and remote access
 
-**[💾 Storage & Disks](/categories/storage-disks/)**
+**[💾 Storage & Disks](/categories/storage--disks/)**
 LVM, LUKS, ZFS, RAID management, and encryption
 
-**[🌐 Networking & Security](/categories/networking-security/)**
+**[🌐 Networking & Security](/categories/networking--security/)**
 VPN setup, packet analysis, mail servers, and security tools
 
 **[📦 Package Management](/categories/package-management/)**
