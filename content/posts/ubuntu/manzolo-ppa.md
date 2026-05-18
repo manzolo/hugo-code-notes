@@ -1,7 +1,7 @@
 ---
 title: "Manzolo PPA (My Own Ubuntu Repository)"
 date: 2025-11-08T18:30:00+02:00
-lastmod: 2025-11-08T18:30:00+02:00
+lastmod: 2026-04-24T00:00:00+02:00
 draft: false
 author: "Manzolo"
 tags: ["ppa", "ubuntu", "repository", "apt", "custom-packages"]
@@ -21,6 +21,14 @@ searchHidden: false
 
 **Install my tools directly with `apt`!**  
 Secure, GPG-signed repository hosted at **https://ubuntu-repo.manzolo.it**
+
+**Ubuntu 26.04 (resolute) — FULLY SUPPORTED**
+
+```bash
+wget -qO - https://ubuntu-repo.manzolo.it/KEY.gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/manzolo-repo.gpg
+echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/manzolo-repo.gpg] https://ubuntu-repo.manzolo.it resolute main" | sudo tee /etc/apt/sources.list.d/manzolo-repo.list
+sudo apt update
+```
 
 **Ubuntu 24.04 (noble) — FULLY SUPPORTED**
 
