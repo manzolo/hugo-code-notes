@@ -20,9 +20,13 @@
 }
 
 /* ---- Page canvas: night sky + very soft stars --------------------------- */
-body {
-  color: var(--sig-text);
-  background:
+/* Always a night sky on the home — independent of the light/dark toggle.
+   `html body` raises specificity over the theme's `body { background: var(--theme) }`,
+   and longhand + a solid fallback color avoid any multi-layer shorthand pitfalls. */
+html body {
+  color: var(--sig-text) !important;
+  background-color: var(--sig-bg-top) !important;
+  background-image:
     radial-gradient(1.5px 1.5px at 12% 22%, rgba(255, 255, 255, .7), transparent),
     radial-gradient(1.5px 1.5px at 78% 16%, rgba(255, 255, 255, .5), transparent),
     radial-gradient(1px 1px at 34% 58%, rgba(255, 255, 255, .5), transparent),
@@ -30,7 +34,9 @@ body {
     radial-gradient(1.5px 1.5px at 88% 62%, rgba(255, 255, 255, .55), transparent),
     radial-gradient(1px 1px at 22% 82%, rgba(255, 255, 255, .4), transparent),
     radial-gradient(1200px 700px at 50% -10%, rgba(94, 234, 212, .08), transparent),
-    linear-gradient(180deg, var(--sig-bg-top) 0%, var(--sig-bg-mid) 55%, var(--sig-bg-bot) 100%) fixed;
+    linear-gradient(180deg, var(--sig-bg-top) 0%, var(--sig-bg-mid) 55%, var(--sig-bg-bot) 100%) !important;
+  background-attachment: fixed !important;
+  background-repeat: no-repeat !important;
   overflow-x: hidden;
 }
 
@@ -41,6 +47,11 @@ body {
 #menu .active { color: var(--sig-teal); }
 .footer { color: var(--sig-muted); }
 .footer a { color: var(--sig-teal); }
+
+/* theme-toggle icon stays visible on the forced-dark canvas */
+#theme-toggle { color: var(--sig-muted); }
+#theme-toggle:hover { color: var(--sig-teal); }
+#theme-toggle svg { fill: currentColor; }
 
 /* keep content above background */
 .main { position: relative; z-index: 1; }
