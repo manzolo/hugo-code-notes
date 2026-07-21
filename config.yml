@@ -105,8 +105,6 @@ params:
         url: /posts/
       - name: 🧪 Projects
         url: https://manzolo.github.io/manzolo/
-      - name: 🎵 Suno
-        url: https://suno.com/@manzolo
 
   socialIcons:
     - name: github
