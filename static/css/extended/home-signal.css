@@ -1,0 +1,134 @@
+/* ============================================================================
+   Home hub — Signal / cosmo theme
+   Loaded ONLY on the homepage (extend_head.html, guarded by .IsHome).
+   Blog/posts pages are untouched.
+   Concept: a calm night sky; the signature is a thin animated waveform under
+   the name that ties together ham radio + songwriting (both are signals).
+   Elegant and restrained — motion lives only in the wave.
+   ============================================================================ */
+
+:root {
+  --sig-bg-top: #070b18;
+  --sig-bg-mid: #0c1330;
+  --sig-bg-bot: #0a1026;
+  --sig-teal: #5eead4;
+  --sig-violet: #a78bfa;
+  --sig-text: #dce6f5;
+  --sig-muted: #8aa0c0;
+  --sig-panel: rgba(148, 187, 233, .05);
+  --sig-border: rgba(148, 187, 233, .18);
+}
+
+/* ---- Page canvas: night sky + very soft stars --------------------------- */
+body {
+  color: var(--sig-text);
+  background:
+    radial-gradient(1.5px 1.5px at 12% 22%, rgba(255, 255, 255, .7), transparent),
+    radial-gradient(1.5px 1.5px at 78% 16%, rgba(255, 255, 255, .5), transparent),
+    radial-gradient(1px 1px at 34% 58%, rgba(255, 255, 255, .5), transparent),
+    radial-gradient(1px 1px at 62% 74%, rgba(255, 255, 255, .45), transparent),
+    radial-gradient(1.5px 1.5px at 88% 62%, rgba(255, 255, 255, .55), transparent),
+    radial-gradient(1px 1px at 22% 82%, rgba(255, 255, 255, .4), transparent),
+    radial-gradient(1200px 700px at 50% -10%, rgba(94, 234, 212, .08), transparent),
+    linear-gradient(180deg, var(--sig-bg-top) 0%, var(--sig-bg-mid) 55%, var(--sig-bg-bot) 100%) fixed;
+  overflow-x: hidden;
+}
+
+/* header / footer, quietly tinted */
+.nav .logo a { color: #eaf1fb; }
+#menu a { color: var(--sig-muted); }
+#menu a:hover,
+#menu .active { color: var(--sig-teal); }
+.footer { color: var(--sig-muted); }
+.footer a { color: var(--sig-teal); }
+
+/* keep content above background */
+.main { position: relative; z-index: 1; }
+
+/* ---- Avatar: soft ring, no pulse ---------------------------------------- */
+.profile_inner img {
+  border-radius: 50%;
+  border: 2px solid rgba(94, 234, 212, .55);
+  box-shadow:
+    0 0 0 6px rgba(94, 234, 212, .06),
+    0 0 22px rgba(94, 234, 212, .22);
+}
+
+/* ---- Name + signature waveform ------------------------------------------ */
+.profile_inner h1 {
+  margin-top: 1.4rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  background: linear-gradient(90deg, var(--sig-teal), #cfe9ff 45%, var(--sig-violet));
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+          color: transparent;
+}
+
+/* traveling sine wave — the signature element */
+.profile_inner h1::after {
+  content: "";
+  display: block;
+  width: min(360px, 72%);
+  height: 30px;
+  margin: .9rem auto 0;
+  background: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='80'%20height='30'%20viewBox='0%200%2080%2030'%3E%3Cpath%20d='M0%2015%20Q20%200%2040%2015%20T80%2015'%20fill='none'%20stroke='%235eead4'%20stroke-width='2'/%3E%3C/svg%3E") repeat-x center / auto 100%;
+  opacity: .8;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
+  animation: sig-wave 4s linear infinite;
+}
+@keyframes sig-wave {
+  from { background-position-x: 0; }
+  to   { background-position-x: 80px; }
+}
+
+/* ---- Bilingual bio ------------------------------------------------------ */
+.profile_inner span {
+  display: block;
+  max-width: 640px;
+  margin: 1.1rem auto 0;
+  color: var(--sig-text);
+  line-height: 1.7;
+}
+.profile_inner span p { margin: .5rem 0; }
+.profile_inner span strong {
+  color: var(--sig-teal);
+  font-weight: 700;
+}
+
+/* ---- Social icons ------------------------------------------------------- */
+.profile .social-icons { margin-top: 1.3rem; }
+.profile .social-icons a {
+  color: var(--sig-muted);
+  transition: color .2s ease, transform .2s ease;
+}
+.profile .social-icons a:hover {
+  color: var(--sig-teal);
+  transform: translateY(-3px);
+}
+.profile .social-icons svg { height: 24px; width: 24px; }
+
+/* ---- Buttons: soft glass ------------------------------------------------ */
+.profile .buttons { gap: .7rem; margin-top: 1.6rem; }
+.profile .button {
+  border: 1px solid var(--sig-border);
+  border-radius: 10px;
+  background: var(--sig-panel);
+  color: var(--sig-text);
+  letter-spacing: .01em;
+  box-shadow: none;
+  transition: border-color .2s ease, background .2s ease, color .2s ease, transform .2s ease;
+}
+.profile .button:hover {
+  border-color: rgba(94, 234, 212, .7);
+  background: rgba(94, 234, 212, .12);
+  color: #eafff9;
+  transform: translateY(-2px);
+}
+
+/* ---- Accessibility ------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .profile_inner h1::after { animation: none; }
+}
