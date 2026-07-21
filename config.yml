@@ -76,13 +76,51 @@ params:
   ShowSearch: true
   
   homeInfoParams:
-    Title: "Welcome to Code Notes 👋"
+    Title: "Hi, I'm Andrea 👋"
     Content: >
-      A technical blog with tutorials, guides and programming notes.
-      
-      - 💻 Practical tutorials
-      - 📚 Detailed guides
-      - 🛠️ Tips and tricks
+      IT technician from Tuscany, Italy — currently at CNR-IFAC.
+      Linux enthusiast, Docker addict and local-AI tinkerer: I build
+      tools, hands-on labs and containers, mostly for fun and to learn.
+
+      Beyond code: licensed ham radio operator (IU5VMO) and I write songs
+      with a bit of AI. This blog is my field notebook — the fixes and
+      setups I figure out along the way, written down so they're useful
+      to someone else too.
+
+  # Neutral personal hub as the homepage (PaperMod profile mode).
+  # NOTE: while profileMode.enabled is true, homeInfoParams above is ignored.
+  profileMode:
+    enabled: true
+    title: "Andrea Manzi"
+    subtitle: |
+      🇮🇹 Tecnico informatico dalla Toscana, al CNR-IFAC. Appassionato di Linux, Docker e AI in locale — costruisco tool, laboratori e container per divertimento e per imparare. Radioamatore **IU5VMO** e, per passione, scrivo canzoni. 📻🎶
+
+      🇬🇧 IT technician from Tuscany, Italy, at CNR-IFAC. Linux enthusiast, Docker addict and local-AI tinkerer — I build tools, hands-on labs and containers for fun and to learn. Ham radio operator **IU5VMO** who also writes songs for the joy of it. 📻🎶
+    imageUrl: "/img/manzolo.jpeg"
+    imageTitle: "Andrea Manzi"
+    imageWidth: 150
+    imageHeight: 150
+    buttons:
+      - name: 📝 Code Notes (blog)
+        url: /posts/
+      - name: 🧪 Projects
+        url: https://manzolo.github.io/manzolo/
+      - name: 🎵 Suno
+        url: https://suno.com/@manzolo
+
+  socialIcons:
+    - name: github
+      url: https://github.com/manzolo
+    - name: linkedin
+      url: https://www.linkedin.com/in/manzolo80
+    - name: youtube
+      url: https://www.youtube.com/@manzolo80
+    - name: soundcloud
+      url: https://soundcloud.com/manzolo
+    - name: stackoverflow
+      url: https://stackoverflow.com/users/2776343/manzolo
+    - name: rss
+      url: /index.xml
 
 markup:
   goldmark:
