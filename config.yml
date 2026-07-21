@@ -1,31 +1,75 @@
 baseURL: "http://localhost:8080/"
 title: "Manzolo Code Notes"
-languageCode: "en-US"
 theme: "PaperMod"
 
 enableRobotsTXT: true
 enableEmoji: true
 
-menu:
-  main:
-    - name: Home
-      url: /
-      weight: 10
-    - name: Posts
-      url: /posts/
-      weight: 20
-    - name: Categories
-      url: /categories/
-      weight: 30
-    - name: Tags
-      url: /tags/
-      weight: 40
-    - name: Search
-      url: /search/
-      weight: 50
-    - name: About
-      url: /about/
-      weight: 60
+# ---- Multilingual: EN is the default (URLs unchanged), IT lives under /it/ ----
+defaultContentLanguage: en
+defaultContentLanguageInSubdir: false
+
+languages:
+  en:
+    languageName: "English"
+    languageCode: "en-US"
+    weight: 1
+    title: "Manzolo Code Notes"
+    menu:
+      main:
+        - { name: Home, url: /, weight: 10 }
+        - { name: Posts, url: /posts/, weight: 20 }
+        - { name: Categories, url: /categories/, weight: 30 }
+        - { name: Tags, url: /tags/, weight: 40 }
+        - { name: Search, url: /search/, weight: 50 }
+        - { name: About, url: /about/, weight: 60 }
+    params:
+      profileMode:
+        enabled: true
+        title: "Andrea Manzi"
+        subtitle: >
+          IT technician from Tuscany, Italy, at CNR-IFAC. Linux, Docker and Git
+          enthusiast and local-AI tinkerer — tools, hands-on labs and containers,
+          for fun and learning; these days I work a lot with AI coding agents like
+          <strong>Claude</strong> and <strong>Codex</strong>. Hobbies: ham radio
+          (<strong>IU5VMO</strong>) and I love writing songs, mostly for myself,
+          with <a href="https://suno.com/@manzolo">Suno</a>. 📻🎶
+        imageUrl: "/img/manzolo.jpeg"
+        imageTitle: "Andrea Manzi"
+        imageWidth: 150
+        imageHeight: 150
+        buttons:
+          - { name: "📝 Code Notes (blog)", url: /posts/ }
+          - { name: "🧪 Projects", url: "https://manzolo.github.io/manzolo/" }
+
+  it:
+    languageName: "Italiano"
+    languageCode: "it-IT"
+    weight: 2
+    title: "Manzolo Code Notes"
+    menu:
+      main:
+        - { name: Home, url: /it/, weight: 10 }
+        - { name: Blog, url: /posts/, weight: 20 }
+        - { name: Chi sono, url: /it/about/, weight: 60 }
+    params:
+      profileMode:
+        enabled: true
+        title: "Andrea Manzi"
+        subtitle: >
+          Tecnico informatico dalla Toscana, al CNR-IFAC. Appassionato di Linux,
+          Docker e Git, smanetto con l'AI in locale — tool, laboratori e container,
+          per divertimento e per imparare; di questi tempi lavoro molto con agenti
+          AI come <strong>Claude</strong> e <strong>Codex</strong>. Hobby: radioamatore
+          (<strong>IU5VMO</strong>) e mi piace scrivere canzoni, soprattutto per me,
+          con <a href="https://suno.com/@manzolo">Suno</a>. 📻🎶
+        imageUrl: "/img/manzolo.jpeg"
+        imageTitle: "Andrea Manzi"
+        imageWidth: 150
+        imageHeight: 150
+        buttons:
+          - { name: "📝 Blog", url: /posts/ }
+          - { name: "🧪 Progetti", url: "https://manzolo.github.io/manzolo/" }
 
 # Output formats per diversi tipi di pagina
 outputs:
@@ -57,54 +101,23 @@ mediaTypes:
   "application/json":
     suffixes: ["json"]
 
+# ---- Shared params across languages ----
 params:
   env: production
-  title: "Manzolo Code Notes"
   description: "Technical blog with tutorials and programming notes"
   author: "Manzolo"
-  
+
   DateFormat: "January 2, 2006"
   defaultTheme: auto
-  
+
   ShowReadingTime: true
   ShowBreadCrumbs: true
   ShowCodeCopyButtons: true
   ShowWordCount: true
   ShowRssButtonInSectionTermList: true
   showtoc: true
-  
+
   ShowSearch: true
-  
-  homeInfoParams:
-    Title: "Hi, I'm Andrea 👋"
-    Content: >
-      IT technician from Tuscany, Italy — currently at CNR-IFAC.
-      Linux enthusiast, Docker addict and local-AI tinkerer: I build
-      tools, hands-on labs and containers, mostly for fun and to learn.
-
-      Beyond code: licensed ham radio operator (IU5VMO) and I write songs
-      with a bit of AI. This blog is my field notebook — the fixes and
-      setups I figure out along the way, written down so they're useful
-      to someone else too.
-
-  # Neutral personal hub as the homepage (PaperMod profile mode).
-  # NOTE: while profileMode.enabled is true, homeInfoParams above is ignored.
-  profileMode:
-    enabled: true
-    title: "Andrea Manzi"
-    subtitle: |
-      <span class="lang lang-it" lang="it">🇮🇹 Tecnico informatico dalla Toscana, al CNR-IFAC. Appassionato di Linux, Docker e Git, smanetto con l'AI in locale — tool, laboratori e container, per divertimento e per imparare; di questi tempi lavoro molto con agenti AI come <strong>Claude</strong> e <strong>Codex</strong>. Hobby: radioamatore (<strong>IU5VMO</strong>) e mi piace scrivere canzoni, soprattutto per me, con <a href="https://suno.com/@manzolo">Suno</a>. 📻🎶</span>
-
-      <span class="lang lang-en" lang="en">🇬🇧 IT technician from Tuscany, Italy, at CNR-IFAC. Linux, Docker and Git enthusiast and local-AI tinkerer — tools, hands-on labs and containers, for fun and learning; these days I work a lot with AI coding agents like <strong>Claude</strong> and <strong>Codex</strong>. Hobbies: ham radio (<strong>IU5VMO</strong>) and I love writing songs, mostly for myself, with <a href="https://suno.com/@manzolo">Suno</a>. 📻🎶</span>
-    imageUrl: "/img/manzolo.jpeg"
-    imageTitle: "Andrea Manzi"
-    imageWidth: 150
-    imageHeight: 150
-    buttons:
-      - name: 📝 Code Notes (blog)
-        url: /posts/
-      - name: 🧪 Projects
-        url: https://manzolo.github.io/manzolo/
 
   socialIcons:
     - name: github

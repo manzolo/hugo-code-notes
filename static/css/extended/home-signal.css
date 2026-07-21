@@ -109,43 +109,13 @@ html body {
   font-weight: 700;
 }
 
-/* each language block is toggled by JS (home-lang.js); without JS both show */
-.profile_inner .lang { display: block; }
-.profile_inner .lang a {
+/* bio links (e.g. Suno) in the signal palette */
+.profile_inner span a {
   color: var(--sig-teal);
   text-decoration: none;
   border-bottom: 1px solid rgba(94, 234, 212, .4);
 }
-.profile_inner .lang a:hover { border-bottom-color: var(--sig-teal); }
-
-/* language toggle (IT / EN) — injected by JS, home only */
-.lang-toggle {
-  display: flex;
-  gap: .4rem;
-  justify-content: center;
-  margin: 1.1rem auto .2rem;
-}
-.lang-toggle button {
-  font: inherit;
-  font-size: .72rem;
-  letter-spacing: .1em;
-  cursor: pointer;
-  padding: .18rem .7rem;
-  border-radius: 999px;
-  border: 1px solid var(--sig-border);
-  background: transparent;
-  color: var(--sig-muted);
-  transition: color .18s ease, background .18s ease, border-color .18s ease;
-}
-.lang-toggle button:hover {
-  color: var(--sig-teal);
-  border-color: rgba(94, 234, 212, .5);
-}
-.lang-toggle button.active {
-  color: #07131f;
-  background: var(--sig-teal);
-  border-color: var(--sig-teal);
-}
+.profile_inner span a:hover { border-bottom-color: var(--sig-teal); }
 
 /* ---- Social icons ------------------------------------------------------- */
 .profile .social-icons { margin-top: 1.3rem; }
