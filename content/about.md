@@ -1,8 +1,8 @@
 ---
 title: "About"
 description: "Learn more about Code Notes and the developer behind it"
-date: 2025-09-25T12:00:00+01:00
-lastmod: 2026-07-21T12:00:00+01:00
+date: 2026-07-21T12:00:00+02:00
+lastmod: 2026-07-21T12:00:00+02:00
 draft: false
 author: "Manzolo"
 showToc: false
