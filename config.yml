@@ -93,9 +93,9 @@ params:
     enabled: true
     title: "Andrea Manzi"
     subtitle: |
-      🇮🇹 Tecnico informatico dalla Toscana, al CNR-IFAC. Appassionato di Linux, Docker e AI in locale — costruisco tool, laboratori e container per divertimento e per imparare. Radioamatore **IU5VMO** e, per passione, scrivo canzoni. 📻🎶
+      <span class="lang lang-it" lang="it">🇮🇹 Tecnico informatico dalla Toscana, al CNR-IFAC. Appassionato di Linux, Docker e AI in locale — costruisco tool, laboratori e container per divertimento e per imparare. Radioamatore <strong>IU5VMO</strong> e, per passione, scrivo canzoni. 📻🎶</span>
 
-      🇬🇧 IT technician from Tuscany, Italy, at CNR-IFAC. Linux enthusiast, Docker addict and local-AI tinkerer — I build tools, hands-on labs and containers for fun and to learn. Ham radio operator **IU5VMO** who also writes songs for the joy of it. 📻🎶
+      <span class="lang lang-en" lang="en">🇬🇧 IT technician from Tuscany, Italy, at CNR-IFAC. Linux enthusiast, Docker addict and local-AI tinkerer — I build tools, hands-on labs and containers for fun and to learn. Ham radio operator <strong>IU5VMO</strong> who also writes songs for the joy of it. 📻🎶</span>
     imageUrl: "/img/manzolo.jpeg"
     imageTitle: "Andrea Manzi"
     imageWidth: 150
