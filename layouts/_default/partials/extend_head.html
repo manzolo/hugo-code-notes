@@ -3,18 +3,19 @@
 {{- end -}}
 {{- if .IsHome -}}
 <link rel="stylesheet" href="{{ "css/extended/home-signal.css" | relURL }}" integrity="" crossorigin="anonymous">
+{{- end -}}
 <script>
-/* First visit to the EN root: if the browser language is Italian, send the
-   visitor to /it/ (once ever). A later manual switch to English lands on / and
-   won't bounce, because the flag is already set. */
+/* Auto-language on entry, without ever fighting a manual switch.
+   On the VERY FIRST page load (any page) we mark a flag; only if that first load
+   is the EN root AND the browser is Italian do we redirect to /it/. Because the
+   flag is set on that first load, a later "En" click (which lands on /) never
+   bounces back to Italian. */
 (function () {
   try {
-    if (location.pathname !== "/") return;
     if (localStorage.getItem("lang-auto")) return;
-    var l = (navigator.language || navigator.userLanguage || "").toLowerCase();
     localStorage.setItem("lang-auto", "1");
-    if (l.indexOf("it") === 0) location.replace("/it/");
+    var l = (navigator.language || navigator.userLanguage || "").toLowerCase();
+    if (location.pathname === "/" && l.indexOf("it") === 0) location.replace("/it/");
   } catch (e) {}
 })();
 </script>
-{{- end -}}
