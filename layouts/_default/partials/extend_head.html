@@ -3,4 +3,18 @@
 {{- end -}}
 {{- if .IsHome -}}
 <link rel="stylesheet" href="{{ "css/extended/home-signal.css" | relURL }}" integrity="" crossorigin="anonymous">
+<script>
+/* First visit to the EN root: if the browser language is Italian, send the
+   visitor to /it/ (once ever). A later manual switch to English lands on / and
+   won't bounce, because the flag is already set. */
+(function () {
+  try {
+    if (location.pathname !== "/") return;
+    if (localStorage.getItem("lang-auto")) return;
+    var l = (navigator.language || navigator.userLanguage || "").toLowerCase();
+    localStorage.setItem("lang-auto", "1");
+    if (l.indexOf("it") === 0) location.replace("/it/");
+  } catch (e) {}
+})();
+</script>
 {{- end -}}

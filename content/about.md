@@ -28,6 +28,8 @@ In my free time I build open-source tools and tinker endlessly; lately a lot of 
 
 I don’t hold a university degree, and I never chased certifications — they simply weren’t my path. I’m happy with the know-how I built hands-on, one step at a time, and that’s what represents me best.
 
+I’ve never wanted to become a specialist in any one thing — it might have brought more career and more money, but I’d rather stay an “absolute beginner” and often start over from scratch to build a new path. On the scale, curiosity has always outweighed the wallet.
+
 I’m looking for a dynamic environment that can **channel my inner nerd into what it actually needs** — one that believes in investing in people and knows how to get the best out of me.
 
 Truth be told: one of my defining traits is doing a whole lot of things and never quite managing to sell myself. With this site I'm trying to put a small piece of me "on display" — the very thing I never really pulled off in all these years. 🙂

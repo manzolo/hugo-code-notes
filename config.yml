@@ -47,10 +47,12 @@ languages:
     languageCode: "it-IT"
     weight: 2
     title: "Manzolo Code Notes"
+    # NB: Hugo prefixes language menu URLs with /it/, so a "/posts/" entry would
+    # become /it/posts/ (404, since posts are EN-only). The blog stays reachable
+    # from the home hub button (→ /posts/, verbatim) and the language switcher.
     menu:
       main:
         - { name: Home, url: /it/, weight: 10 }
-        - { name: Blog, url: /posts/, weight: 20 }
         - { name: Chi sono, url: /it/about/, weight: 60 }
     params:
       profileMode:

@@ -28,6 +28,8 @@ Nel tempo libero costruisco tool open source e smanetto senza sosta; di questi t
 
 Non ho un titolo universitario e non ho mai rincorso le certificazioni: semplicemente non è stata la mia strada. Sono felice della preparazione che mi sono costruito sul campo, un passo alla volta — ed è quella che mi rappresenta.
 
+Non mi è mai interessato diventare specialista di qualcosa: forse mi avrebbe dato più carriera e più soldi, ma ho preferito restare un «absolute beginner» e ripartire spesso da zero per costruirmi una strada nuova. Alla fine, sulla bilancia, la curiosità ha sempre vinto sul portafoglio.
+
 Sono alla ricerca di una realtà dinamica capace di **sposare la mia "nerdità" con le proprie esigenze**: qualcuno che creda nell'investire sulle persone e sappia tirare fuori il meglio da me.
 
 Diciamola tutta: una delle mie caratteristiche è fare un sacco di cose e non sapermi mai vendere. Con questo sito provo a mettere «in mostra» un piccolo pezzo di me — proprio quello che, in fondo, in tutti questi anni non sono mai riuscito a fare. 🙂
