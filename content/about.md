@@ -30,6 +30,8 @@ A casa coltivo la stessa passione con il mio **homelab** — quello che chiamo �
 
 Nel tempo libero costruisco tool open source e smanetto senza sosta; di questi tempi il quotidiano è fatto molto di agenti AI di coding come **Claude** e **Codex**. Fuori dal codice: ho da poco conseguito la patente da radioamatore (**IU5VMO**) — la stazione è ancora tutta da allestire — e mi piace scrivere canzoni, soprattutto per me, con [Suno](https://suno.com/@manzolo).
 
+Non ho un titolo universitario e non ho mai rincorso le certificazioni: semplicemente non è stata la mia strada. Sono felice della preparazione che mi sono costruito sul campo, un passo alla volta — ed è quella che mi rappresenta.
+
 Sono alla ricerca di una realtà dinamica capace di **sposare la mia "nerdità" con le proprie esigenze**: qualcuno che creda nell'investire sulle persone e sappia tirare fuori il meglio da me.
 
 Diciamola tutta: una delle mie caratteristiche è fare un sacco di cose e non sapermi mai vendere. Con questo sito provo a mettere «in mostra» un piccolo pezzo di me — proprio quello che, in fondo, in tutti questi anni non sono mai riuscito a fare. 🙂
@@ -47,6 +49,8 @@ Professionally, I started with client–server languages and moved toward web pr
 At home I keep the same passion alive with my **homelab** — what I like to call "a small server," which is really a **Proxmox** host packed with VMs and containers: self-hosted services, **Home Assistant** and home automation, a NAS, **local-AI** experiments, and even the sensor data from my camper (battery, GPS, temperature). All held together with **Docker**, **Git** and plenty of curiosity.
 
 In my free time I build open-source tools and tinker endlessly; lately a lot of my day-to-day is AI coding agents like **Claude** and **Codex**. Beyond code: I recently earned my ham radio licence (**IU5VMO**) — the station itself is still to be set up — and I love writing songs, mostly for myself, with [Suno](https://suno.com/@manzolo).
+
+I don’t hold a university degree, and I never chased certifications — they simply weren’t my path. I’m happy with the know-how I built hands-on, one step at a time, and that’s what represents me best.
 
 I’m looking for a dynamic environment that can **channel my inner nerd into what it actually needs** — one that believes in investing in people and knows how to get the best out of me.
 
