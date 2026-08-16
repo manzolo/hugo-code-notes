@@ -1,18 +1,13 @@
 {{- if or (eq .Kind "taxonomy") (eq .Kind "term") (eq .Kind "page") -}}
 <link rel="stylesheet" href="{{ "css/extended/custom.css" | relURL }}" integrity="" crossorigin="anonymous">
 {{- end -}}
-<script>
-/* Auto-language on entry, without ever fighting a manual switch.
-   On the VERY FIRST page load (any page) we mark a flag; only if that first load
-   is the EN root AND the browser is Italian do we redirect to /it/. Because the
-   flag is set on that first load, a later "En" click (which lands on /) never
-   bounces back to Italian. */
-(function () {
-  try {
-    if (localStorage.getItem("lang-auto")) return;
-    localStorage.setItem("lang-auto", "1");
-    var l = (navigator.language || navigator.userLanguage || "").toLowerCase();
-    if (location.pathname === "/" && l.indexOf("it") === 0) location.replace("/it/");
-  } catch (e) {}
-})();
-</script>
+{{- /*
+  Nessun redirect automatico verso /it/ (tolto il 2026-08-16).
+  C'era uno script che, alla prima visita alla root con browser italiano, faceva
+  location.replace("/it/"). Il problema: da quando profileMode è spento la home è
+  la lista dei post recenti, e post italiani non ne esiste nessuno (i ~40 post sono
+  tutti in inglese) — quindi /it/ era due righe di testo e niente altro. Chi arrivava
+  dalla landing manzolo.it con un browser italiano finiva lì e vedeva un blog vuoto.
+  L'italiano resta raggiungibile dal selettore lingua in header; se un giorno i post
+  saranno tradotti, il redirect si può rimettere.
+*/ -}}
