@@ -22,10 +22,9 @@ languages:
         - { name: Categories, url: /categories/, weight: 30 }
         - { name: Tags, url: /tags/, weight: 40 }
         - { name: Search, url: /search/, weight: 50 }
-        - { name: About, url: /about/, weight: 60 }
     params:
       profileMode:
-        enabled: true
+        enabled: false
         title: "Andrea Manzi"
         subtitle: >
           IT technician from Tuscany, Italy, at CNR-IFAC. Linux, Docker and Git
@@ -53,10 +52,9 @@ languages:
     menu:
       main:
         - { name: Home, url: /it/, weight: 10 }
-        - { name: Chi sono, url: /it/about/, weight: 60 }
     params:
       profileMode:
-        enabled: true
+        enabled: false
         title: "Andrea Manzi"
         subtitle: >
           Tecnico informatico dalla Toscana, al CNR-IFAC. Appassionato di Linux,
@@ -108,6 +106,8 @@ params:
   env: production
   description: "Technical blog with tutorials and programming notes"
   author: "Manzolo"
+  # La home elenca i post recenti di queste sezioni (blog puro)
+  mainSections: ["posts", "bash", "docker-compose", "shell"]
 
   DateFormat: "January 2, 2006"
   defaultTheme: auto

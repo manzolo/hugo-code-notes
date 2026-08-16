@@ -1,9 +1,6 @@
 {{- if or (eq .Kind "taxonomy") (eq .Kind "term") (eq .Kind "page") -}}
 <link rel="stylesheet" href="{{ "css/extended/custom.css" | relURL }}" integrity="" crossorigin="anonymous">
 {{- end -}}
-{{- if .IsHome -}}
-<link rel="stylesheet" href="{{ "css/extended/home-signal.css" | relURL }}" integrity="" crossorigin="anonymous">
-{{- end -}}
 <script>
 /* Auto-language on entry, without ever fighting a manual switch.
    On the VERY FIRST page load (any page) we mark a flag; only if that first load
