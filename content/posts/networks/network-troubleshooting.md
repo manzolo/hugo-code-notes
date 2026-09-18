@@ -4,10 +4,10 @@ date: 2026-09-18T12:00:00+02:00
 lastmod: 2026-09-18T12:00:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["networking", "troubleshooting", "linux", "windows", "dns", "quick-tip"]
-categories: ["Quick Pills"]
-series: ["Quick Pills Collection"]
-weight: 7
+tags: ["networking", "troubleshooting", "linux", "windows", "dns"]
+categories: ["Networking & Security"]
+series: ["Networking Fundamentals"]
+weight: 10
 ShowToc: true
 TocOpen: false
 hidemeta: false
@@ -18,7 +18,7 @@ searchHidden: false
 description: "A machine on the LAN does not answer, or half-answers: work out which layer is broken instead of trying commands at random"
 ---
 
-# 💊 Quick Pill: Network Troubleshooting
+# Network Troubleshooting: A Layered Diagnostic Method
 
 {{< callout type="info" >}}
 **Use case**: a machine on the LAN does not respond, or responds *halfway*. Instead of
@@ -825,7 +825,7 @@ Because you end up working on both, usually within the same hour.
 
 ---
 
-**Related Pills:**
+**Related:**
 - [Windows System Repair and Maintenance](/2025/10/windows-system-repair-and-maintenance/)
 - [Network Traffic Analysis with tcpdump](/2025/10/network-traffic-analysis-with-tcpdump-debian/) - layer 7, in depth
 - [Network Traffic Analysis with Wireshark](/2025/10/network-traffic-analysis-with-wireshark-debian/)

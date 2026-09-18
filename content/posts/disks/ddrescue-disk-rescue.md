@@ -4,10 +4,10 @@ date: 2026-09-18T13:00:00+02:00
 lastmod: 2026-09-18T13:00:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["disks", "recovery", "ddrescue", "linux", "smart", "quick-tip"]
-categories: ["Quick Pills"]
-series: ["Quick Pills Collection"]
-weight: 8
+tags: ["disks", "recovery", "ddrescue", "linux", "smart"]
+categories: ["Storage & Disks"]
+series: ["Linux Storage Deep Dive"]
+weight: 6
 ShowToc: true
 TocOpen: false
 hidemeta: false
@@ -18,7 +18,7 @@ searchHidden: false
 description: "Copy a dying disk while it is still readable: only the areas that hold data, surviving the drive's own collapses, without ever writing to it"
 ---
 
-# 💊 Quick Pill: Rescuing a Failing Disk with ddrescue
+# Rescuing a Failing Disk with ddrescue
 
 {{< callout type="info" >}}
 **Use case**: a disk that reads slowly, throws I/O errors, disappears from the bus or
@@ -614,7 +614,7 @@ about which adapter was better would have cost a day and an order.
 
 ---
 
-**Related Pills:**
+**Related:**
 - [Windows System Repair and Maintenance](/2025/10/windows-system-repair-and-maintenance/) - the tools to run **on the image**, in the right order
 - [Windows Boot Repair](/2025/09/windows-boot-repair/)
 - [LUKS Disk Encryption Management](/2025/10/luks-disk-encryption-management-guide-debian/)
