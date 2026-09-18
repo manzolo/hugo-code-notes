@@ -826,7 +826,6 @@ Because you end up working on both, usually within the same hour.
 ---
 
 **Related Pills:**
-- [Reading Windows Logs: From Error Code to Root Cause](/2026/09/reading-windows-logs-from-error-code-to-root-cause/) - the same method, one domain over: decode, then follow the chain down
 - [Windows System Repair and Maintenance](/2025/10/windows-system-repair-and-maintenance/)
 - [Network Traffic Analysis with tcpdump](/2025/10/network-traffic-analysis-with-tcpdump-debian/) - layer 7, in depth
 - [Network Traffic Analysis with Wireshark](/2025/10/network-traffic-analysis-with-wireshark-debian/)

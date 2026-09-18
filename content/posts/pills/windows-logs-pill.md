@@ -2,7 +2,7 @@
 title: "Reading Windows Logs: From Error Code to Root Cause"
 date: 2026-09-18T11:00:00+02:00
 lastmod: 2026-09-18T11:00:00+02:00
-draft: false
+draft: true
 author: "Manzolo"
 tags: ["windows", "logs", "troubleshooting", "dism", "sfc", "quick-tip"]
 categories: ["Quick Pills"]
