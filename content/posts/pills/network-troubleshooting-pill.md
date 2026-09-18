@@ -7,7 +7,7 @@ author: "Manzolo"
 tags: ["networking", "troubleshooting", "linux", "windows", "dns", "quick-tip"]
 categories: ["Quick Pills"]
 series: ["Quick Pills Collection"]
-weight: 4
+weight: 7
 ShowToc: true
 TocOpen: false
 hidemeta: false

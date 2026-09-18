@@ -7,7 +7,7 @@ author: "Manzolo"
 tags: ["windows", "logs", "troubleshooting", "dism", "sfc", "quick-tip"]
 categories: ["Quick Pills"]
 series: ["Quick Pills Collection"]
-weight: 3
+weight: 9
 ShowToc: true
 TocOpen: false
 hidemeta: false

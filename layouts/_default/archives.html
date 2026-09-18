@@ -88,7 +88,7 @@
 
     <!-- Posts by Year -->
     <div class="archive-timeline" id="archiveTimeline">
-      {{- range (.Site.RegularPages.GroupByDate "2006") }}
+      {{- range (.Site.RegularPages.ByDate.Reverse.GroupByDate "2006") }}
       {{- $year := .Key }}
       <div class="year-group" data-year="{{ $year }}">
         <h2 class="year-header">

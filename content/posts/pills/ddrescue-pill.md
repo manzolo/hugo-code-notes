@@ -7,7 +7,7 @@ author: "Manzolo"
 tags: ["disks", "recovery", "ddrescue", "linux", "smart", "quick-tip"]
 categories: ["Quick Pills"]
 series: ["Quick Pills Collection"]
-weight: 5
+weight: 8
 ShowToc: true
 TocOpen: false
 hidemeta: false
