@@ -65,8 +65,10 @@ sudo apt install openvpn easy-rsa
 Verifica l'installazione:
 ```bash
 openvpn --version
-easyrsa version
+ls /usr/share/easy-rsa/
 ```
+
+**Nota**: su Debian/Ubuntu `easyrsa` non è nel `PATH`: sta in `/usr/share/easy-rsa/` e si lancia come `./easyrsa` dalla cartella che `make-cadir` crea al passo successivo.
 
 ### 2. Preparare Easy-RSA per i certificati
 Easy-RSA genera la Certificate Authority (CA) e le chiavi.
@@ -171,6 +173,51 @@ Lascia passare il traffico VPN attraverso il firewall:
   sudo ufw enable
   ```
 
+### 5.1 Far navigare i client: inoltro IP e NAT
+Con `push "redirect-gateway def1 bypass-dhcp"` ogni client manda **tutto** il suo traffico nel tunnel. Il server deve quindi inoltrarlo e nasconderlo dietro il proprio indirizzo, altrimenti i client si collegano senza problemi e poi non navigano: il tunnel è su, `ping 10.8.0.1` risponde, e oltre il server non risponde più niente.
+
+Provato su Ubuntu 24.04 con OpenVPN 2.6: senza le tre modifiche qui sotto un client collegato perde il 100% dei ping verso l'esterno; con quelle, naviga.
+
+1. Trova l'interfaccia di uscita del server (il nome dopo `dev`: `eth0`, `ens3`, `enp2s0`...):
+   ```bash
+ip route show default
+```
+
+2. Abilita l'inoltro IP, in modo permanente:
+   ```bash
+echo "net.ipv4.ip_forward=1" | sudo tee /etc/sysctl.d/99-openvpn.conf
+sudo sysctl --system
+```
+
+3. Permetti a UFW di inoltrare i pacchetti. In `/etc/default/ufw` imposta `DEFAULT_FORWARD_POLICY="ACCEPT"`:
+   ```bash
+sudo nano /etc/default/ufw
+```
+
+4. Aggiungi la regola di NAT **in cima** a `/etc/ufw/before.rules`, prima della sezione `*filter`, mettendo la tua interfaccia al posto di `eth0`:
+   ```bash
+sudo nano /etc/ufw/before.rules
+```
+   ```
+# START OPENVPN RULES
+*nat
+:POSTROUTING ACCEPT [0:0]
+-A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
+COMMIT
+# END OPENVPN RULES
+```
+
+5. Ricarica UFW e controlla:
+   ```bash
+sudo ufw disable
+sudo ufw enable
+```
+   ```bash
+sysctl net.ipv4.ip_forward
+sudo iptables -t nat -S POSTROUTING | grep 10.8.0.0
+```
+   Atteso: `net.ipv4.ip_forward = 1` e una riga `MASQUERADE` per `10.8.0.0/24`.
+
 ### 6. Creare utenti/client
 Genera i certificati e le configurazioni dei client.
 
@@ -256,6 +303,7 @@ Su un client Debian/Ubuntu:
 
 2. Copia il file `.ovpn` dal server (per esempio con SCP):
    ```bash
+   mkdir -p ~/vpn
    scp user@server-ip:~/client-configs/files/client1.ovpn ~/vpn/client1.ovpn
    ```
 
@@ -354,6 +402,7 @@ ls ~/client-configs/files/client1.ovpn
 Sul client:
 ```bash
 sudo apt install openvpn
+mkdir -p ~/vpn
 scp user@server-ip:~/client-configs/files/client1.ovpn ~/vpn/client1.ovpn
 sudo openvpn --config ~/vpn/client1.ovpn
 ```
@@ -411,7 +460,7 @@ cd ~/client-configs
 ## Risoluzione dei problemi
 - **Connessione rifiutata**: controlla il firewall (`ufw status`), l'inoltro della porta e l'IP del server nel file `.ovpn`.
 - **Errori di certificato**: verifica la passphrase della CA e i percorsi delle chiavi in `server.conf`.
-- **Niente internet dopo il collegamento**: controlla che in `server.conf` ci sia `push "redirect-gateway def1 bypass-dhcp"`.
+- **Niente internet dopo il collegamento**: il tunnel è su ma oltre `10.8.0.1` non risponde niente: il server non inoltra o non fa NAT. Vedi il passo 5.1 (inoltro IP, `DEFAULT_FORWARD_POLICY`, regola `MASQUERADE`). Controlla anche che in `server.conf` ci sia `push "redirect-gateway def1 bypass-dhcp"`.
 - **Problemi di permessi**: assicurati che le chiavi abbiano `chmod 600` e che il proprietario sia root.
 - **Guarda i log**: i log del server stanno in `/var/log/syslog` o in `journalctl -u openvpn@server`.
 - **Il client non si collega**: usa `openvpn --config client1.ovpn --verb 4` per avere log dettagliati.

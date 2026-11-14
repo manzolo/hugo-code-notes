@@ -73,15 +73,15 @@ sudo apt install -y xfce4 xfce4-goodies xrdp
 - `xfce4-goodies`: Adds extra XFCE tools for a better experience.
 
 ### 2. Configure XRDP
-Set XRDP to use XFCE as the default session.
+Tell XRDP which desktop to start. This is a per-user setting: run it as the user who will log in over RDP.
 
 ```bash
-echo "exec startxfce4" | sudo tee -a /etc/xrdp/xrdp.ini
 echo xfce4-session > ~/.xsession
 ```
 
-- `/etc/xrdp/xrdp.ini`: Configures XRDP to start XFCE.
-- `~/.xsession`: Sets XFCE as the user’s session.
+- `~/.xsession`: read by `/etc/X11/Xsession`, which XRDP runs at login (`/etc/xrdp/startwm.sh`). It is the only line that decides the desktop.
+
+**Note**: older versions of this guide also appended `exec startxfce4` to `/etc/xrdp/xrdp.ini`. That file is an INI file, not a script, and the line does nothing. Tested on Ubuntu 24.04 with xrdp 0.9.24: with `~/.xsession` XFCE starts whether the line is there or not; without `~/.xsession` the system default desktop starts (LXQt on the test machine) even with the line in place.
 
 ### 3. Add XRDP User to SSL Group
 Grant XRDP access to SSL certificates for secure connections.
@@ -117,10 +117,14 @@ sudo ufw enable
   - Use your Linux username and password.
 - Verify XFCE desktop loads remotely.
 
+![XFCE desktop served over RDP, seen from the client window](/images/rdp-xfce-session.png "The XFCE session of user demo, opened with an RDP client")
+
 ## Example
 
 ### Example: Full XRDP Setup
 Run the following script to automate the entire process:
+
+Run it as the user who will connect (it uses `sudo` where needed): `~/.xsession` must belong to that user, not to root.
 
 ```bash
 #!/bin/bash
@@ -128,10 +132,9 @@ echo "Installing RDP..."
 sudo apt update -qqy > /dev/null
 sudo apt install -qqy --no-install-recommends ubuntu-desktop > /dev/null
 sudo apt install -qqy xfce4 xfce4-goodies xrdp > /dev/null
-echo "exec startxfce4" | sudo tee -a /etc/xrdp/xrdp.ini > /dev/null
 sudo adduser xrdp ssl-cert > /dev/null
 sudo systemctl restart xrdp > /dev/null
-echo xfce4-session | sudo tee /home/$(whoami)/.xsession > /dev/null
+echo xfce4-session > ~/.xsession
 echo "XRDP installed and configured. Connect via RDP to $(hostname -I | awk '{print $1}'):3389"
 ```
 
@@ -151,7 +154,6 @@ Connect using an RDP client to the server’s IP and port 3389.
 ## Command Breakdown
 
 - **apt install xrdp xfce4**: Installs XRDP server and XFCE desktop.
-- **echo "exec startxfce4" >> /etc/xrdp/xrdp.ini**: Configures XRDP to use XFCE.
 - **adduser xrdp ssl-cert**: Grants SSL access for secure connections.
 - **systemctl restart xrdp**: Restarts the XRDP service.
 - **echo xfce4-session > ~/.xsession**: Sets XFCE as the session.

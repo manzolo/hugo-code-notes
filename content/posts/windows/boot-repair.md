@@ -48,19 +48,25 @@ To prepare or repair the ESP and Windows partition:
 ```cmd
 diskpart
 list disk
-sel disk 0  # Verify this is the correct disk
-list part   # Confirm partition layout (ESP is typically 100-300 MB, FAT32)
+rem Verify this is the correct disk
+sel disk 0
+rem Confirm partition layout (ESP is typically 100-300 MB, FAT32)
+list part
 
-# Select EFI System Partition (ESP) - FAT32
-sel part 1  # Verify this is the ESP
+rem Select EFI System Partition (ESP) - FAT32
+rem Verify this is the ESP
+sel part 1
 format quick fs=fat32
 assign letter=s
 
-# Select Windows Partition
-sel part 3  # Verify this is the Windows partition
+rem Select Windows Partition
+rem Verify this is the Windows partition
+sel part 3
 assign letter=c
 exit
 ```
+
+**About the `rem` lines**: `diskpart` has no `#` comments. A command followed by `# something` is rejected (`The arguments specified for this command are not valid`) and, worse, a rejected `sel disk` leaves **no disk selected** - or the previous one. Comments go on their own line and start with `rem`. Tested with DiskPart 10.0.26100 on Windows 11.
 
 - **Explanation**:
   - `diskpart`: Launches the disk partitioning tool.
@@ -91,23 +97,24 @@ If the ESP is missing, create one:
 ```cmd
 diskpart
 list disk
-sel disk 0  # Verify this is the correct disk
+rem Verify this is the correct disk
+sel disk 0
 
-# Create EFI partition (100MB)
-create partition efi size=100 offset=1
+rem Create EFI partition (100MB)
+create partition efi size=100
 format quick fs=fat32 label="System"
 assign letter=S
 
-# Create Microsoft Reserved (MSR) partition (128MB)
-create partition msr size=128 offset=103424
+rem Create Microsoft Reserved (MSR) partition (128MB)
+create partition msr size=128
 exit
 ```
 
 - **Explanation**:
   - `list disk`: Confirms the correct disk.
-  - `create partition efi size=100 offset=1`: Creates a 100 MB EFI partition with a 1 KB offset for alignment.
+  - `create partition efi size=100`: Creates a 100 MB EFI partition. No `offset=`: `diskpart` places and aligns it by itself, on a megabyte boundary.
   - `format quick fs=fat32 label="System"`: Formats the partition as FAT32 with a "System" label.
-  - `create partition msr size=128 offset=103424`: Creates a 128 MB Microsoft Reserved partition (required for UEFI).
+  - `create partition msr size=128`: Creates a 128 MB Microsoft Reserved partition (required for UEFI).
   - Use `bcdboot c:\Windows /s S: /f UEFI` afterward to populate the ESP.
 
 ### MBR/Legacy Boot Repair
@@ -136,20 +143,24 @@ If `bootrec /fixboot` fails, use this method:
 ```cmd
 diskpart
 list disk
-sel disk 0  # Verify this is the correct disk
-list part   # Confirm partition layout (system partition is typically 100-500 MB)
+rem Verify this is the correct disk
+sel disk 0
+rem Confirm partition layout (system partition is typically 100-500 MB)
+list part
 
-# System partition - FAT32 or NTFS
-sel part 1  # Verify this is the system partition
+rem System partition - FAT32 or NTFS
+rem Verify this is the system partition
+sel part 1
 format quick fs=fat32
 assign letter=s
 
-# Windows partition
-sel part 3  # Verify this is the Windows partition
+rem Windows partition
+rem Verify this is the Windows partition
+sel part 3
 assign letter=c
 exit
 
-# Rebuild boot configuration for all firmware types
+rem Rebuild boot configuration for all firmware types
 bcdboot C:\Windows /s S: /f ALL
 ```
 
@@ -166,14 +177,15 @@ bcdboot C:\Windows /s S: /f ALL
   - Use the alternative `bcdboot` method shown above.
   - Ensure the system partition is active (`active` command in `diskpart` for MBR) or formatted correctly (FAT32 for UEFI).
 - **VHD Compatibility**:
-  - When creating partitions for virtual hard disks (VHDs), use `subformat=fixed,force_size` in `diskpart` for better compatibility:
+  - A VHD is partitioned like any other disk once it is attached. `diskpart` has no `subformat` option (that one belongs to `qemu-img`): adding it makes the command fail.
     ```cmd
     create vdisk file="C:\path\to\disk.vhd" maximum=50000 type=fixed
     attach vdisk
-    create partition efi size=100 offset=1 subformat=fixed,force_size
+    convert gpt
+    create partition efi size=100
     ```
 - **Partition Alignment**:
-  - Use proper offsets (e.g., `offset=1` for EFI, `offset=103424` for MSR) to align partitions for optimal performance.
+  - Do not pass `offset=` when creating partitions: `diskpart` aligns them by itself. An explicit `offset=1` (1 KB) falls inside the GPT header area and is refused (`There is not enough usable space for this operation`).
   - Verify alignment with `list part` in `diskpart`.
 - **Missing Windows Installation**:
   - If `bootrec /scanos` doesn’t detect Windows, ensure the Windows partition is assigned a letter and contains `Windows\System32`.

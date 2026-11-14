@@ -64,8 +64,10 @@ sudo apt install openvpn easy-rsa
 Verify installation:
 ```bash
 openvpn --version
-easyrsa version
+ls /usr/share/easy-rsa/
 ```
+
+**Note**: on Debian/Ubuntu `easyrsa` is not in the `PATH`: it lives in `/usr/share/easy-rsa/` and you run it as `./easyrsa` from the directory that `make-cadir` creates in the next step.
 
 ### 2. Set Up Easy-RSA for Certificates
 Easy-RSA generates the Certificate Authority (CA) and keys.
@@ -170,6 +172,51 @@ Allow VPN traffic through the firewall:
   sudo ufw enable
   ```
 
+### 5.1 Let Clients Reach the Internet: IP Forwarding and NAT
+With `push "redirect-gateway def1 bypass-dhcp"` every client sends **all** its traffic into the tunnel. The server must then forward it and hide it behind its own address, otherwise clients connect fine and then cannot browse: the tunnel is up, `ping 10.8.0.1` answers, and nothing beyond the server does.
+
+Tested on Ubuntu 24.04 with OpenVPN 2.6: without the three changes below a connected client loses 100% of its pings to the outside; with them it browses.
+
+1. Find the server's outbound interface (the name after `dev`: `eth0`, `ens3`, `enp2s0`...):
+   ```bash
+ip route show default
+```
+
+2. Enable IP forwarding, permanently:
+   ```bash
+echo "net.ipv4.ip_forward=1" | sudo tee /etc/sysctl.d/99-openvpn.conf
+sudo sysctl --system
+```
+
+3. Let UFW forward packets. In `/etc/default/ufw` set `DEFAULT_FORWARD_POLICY="ACCEPT"`:
+   ```bash
+sudo nano /etc/default/ufw
+```
+
+4. Add the NAT rule at the **top** of `/etc/ufw/before.rules`, before the `*filter` section, replacing `eth0` with your interface:
+   ```bash
+sudo nano /etc/ufw/before.rules
+```
+   ```
+# START OPENVPN RULES
+*nat
+:POSTROUTING ACCEPT [0:0]
+-A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
+COMMIT
+# END OPENVPN RULES
+```
+
+5. Reload UFW and check:
+   ```bash
+sudo ufw disable
+sudo ufw enable
+```
+   ```bash
+sysctl net.ipv4.ip_forward
+sudo iptables -t nat -S POSTROUTING | grep 10.8.0.0
+```
+   Expected: `net.ipv4.ip_forward = 1` and one `MASQUERADE` line for `10.8.0.0/24`.
+
 ### 6. Create Users/Clients
 Generate client certificates and configurations.
 
@@ -255,6 +302,7 @@ On a Debian/Ubuntu client:
 
 2. Copy the `.ovpn` file from the server (e.g., via SCP):
    ```bash
+   mkdir -p ~/vpn
    scp user@server-ip:~/client-configs/files/client1.ovpn ~/vpn/client1.ovpn
    ```
 
@@ -353,6 +401,7 @@ ls ~/client-configs/files/client1.ovpn
 On the client:
 ```bash
 sudo apt install openvpn
+mkdir -p ~/vpn
 scp user@server-ip:~/client-configs/files/client1.ovpn ~/vpn/client1.ovpn
 sudo openvpn --config ~/vpn/client1.ovpn
 ```
@@ -410,7 +459,7 @@ cd ~/client-configs
 ## Troubleshooting
 - **Connection Refused**: Check firewall (`ufw status`), port forwarding, and server IP in `.ovpn`.
 - **Certificate Errors**: Verify CA passphrase and key locations in `server.conf`.
-- **No Internet After Connecting**: Check `server.conf` for `push "redirect-gateway def1 bypass-dhcp"`.
+- **No Internet After Connecting**: The tunnel is up but nothing answers beyond `10.8.0.1`: the server is not forwarding or not doing NAT. See step 5.1 (IP forwarding, `DEFAULT_FORWARD_POLICY`, the `MASQUERADE` rule). Also check `server.conf` for `push "redirect-gateway def1 bypass-dhcp"`.
 - **Permission Issues**: Ensure keys have `chmod 600` and are owned by root.
 - **Check Logs**: Server logs in `/var/log/syslog` or `journalctl -u openvpn@server`.
 - **Client Connection Fails**: Use `openvpn --config client1.ovpn --verb 4` for detailed logs.
