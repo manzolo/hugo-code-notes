@@ -110,7 +110,7 @@ wireshark &
 1. In the Wireshark GUI, select an interface (e.g., `eth0`) and click **Start**.
 2. Traffic will appear in real-time, showing packets with columns like Source, Destination, Protocol, and Info.
 
-![Wireshark packet capture on eth0](/images/wireshark-capture.png "Wireshark capturing HTTP traffic on eth0")
+![Wireshark capturing HTTP traffic: packet list, protocol details and raw bytes](/images/wireshark-capture.png "Wireshark capturing HTTP traffic (capture filter: port 80)")
 
 Alternatively, use `tshark` for CLI capture:
 ```bash

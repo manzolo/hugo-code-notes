@@ -102,14 +102,13 @@ Easy-RSA generates the Certificate Authority (CA) and keys.
 
 6. Generate TLS key for HMAC protection:
    ```bash
-   openvpn --genkey --secret pki/ta.key
+   openvpn --genkey secret pki/ta.key
    ```
 
 ### 3. Configure the OpenVPN Server
 Create and edit the server configuration file:
 ```bash
-sudo cp /usr/share/doc/openvpn/examples/server.conf.gz /etc/openvpn/server.conf.gz
-sudo gunzip /etc/openvpn/server.conf.gz
+sudo cp /usr/share/doc/openvpn/examples/sample-config-files/server.conf /etc/openvpn/server.conf
 sudo nano /etc/openvpn/server.conf
 ```
 
@@ -127,6 +126,8 @@ Key changes:
 - `tls-auth /etc/openvpn/ta.key 0`
 - `user nobody`
 - `group nogroup`
+
+**Note** (OpenVPN 2.6, Ubuntu 24.04): the sample file has no `dh` line and ships `user`/`group` commented out. Without a `dh` line the server refuses to start with `Options error: You must define DH file (--dh)`, so add it by hand. Older releases shipped the sample gzipped as `examples/server.conf.gz`.
 
 Copy keys to `/etc/openvpn/`:
 ```bash
@@ -148,7 +149,7 @@ Verify status:
 ```bash
 sudo systemctl status openvpn@server
 ```
-![OpenVPN server status showing active connection](/images/openvpn-server-status.png "Output of sudo systemctl status openvpn@server")
+![OpenVPN server status: active (running), Initialization Sequence Completed](/images/openvpn-server-status.png "Output of sudo systemctl status openvpn@server")
 Example output:
 ```
 ● openvpn@server.service - OpenVPN connection to server
@@ -294,7 +295,7 @@ nano vars  # Set parameters
 ./easyrsa gen-req server nopass
 ./easyrsa sign-req server server
 ./easyrsa gen-dh
-openvpn --genkey --secret pki/ta.key
+openvpn --genkey secret pki/ta.key
 ```
 
 **Output** (during `build-ca`):
@@ -307,8 +308,7 @@ CA creation complete and you may now import and sign cert requests.
 ### Example 3: Configure and Start OpenVPN Server
 Configure the server and start the service:
 ```bash
-sudo cp /usr/share/doc/openvpn/examples/server.conf.gz /etc/openvpn/server.conf.gz
-sudo gunzip /etc/openvpn/server.conf.gz
+sudo cp /usr/share/doc/openvpn/examples/sample-config-files/server.conf /etc/openvpn/server.conf
 sudo nano /etc/openvpn/server.conf  # Edit as needed
 sudo cp ~/openvpn-ca/pki/ca.crt /etc/openvpn/
 sudo cp ~/openvpn-ca/pki/issued/server.crt /etc/openvpn/
@@ -389,7 +389,7 @@ cd ~/client-configs
 - **apt install openvpn easy-rsa**: Installs OpenVPN and certificate tools.
 - **easyrsa build-ca**: Generates the CA.
 - **easyrsa gen-req/sign-req**: Generates and signs certificates.
-- **openvpn --genkey --secret**: Generates TLS key.
+- **openvpn --genkey secret**: Generates TLS key.
 - **systemctl start/enable openvpn@server**: Manages the server service.
 - **ufw allow**: Configures firewall rules.
 - **openvpn --config <file>**: Connects the client.

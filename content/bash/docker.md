@@ -35,7 +35,7 @@ Docker Compose simplifies the management of multi-container applications by defi
 ## Prerequisites
 
 - Docker installed on your system (`docker --version` to verify).
-- Docker Compose installed (`docker-compose --version` or `docker compose version` for newer versions).
+- Docker Compose v2 installed (`docker compose version`). It is a plugin of the `docker` command: the old standalone `docker-compose` (with the hyphen) is retired.
 - Basic understanding of terminal commands.
 
 ## Basic Docker Commands
@@ -107,7 +107,6 @@ Docker Compose uses a `docker-compose.yml` file to define services. Below is an 
 ### Example: Simple Web App with Nginx and MySQL
 
 ```yaml
-version: '3.8'
 services:
   web:
     image: nginx:latest
@@ -141,28 +140,28 @@ volumes:
 
 ```bash
 # Start services defined in docker-compose.yml
-docker-compose up -d
+docker compose up -d
 
 # Stop and remove services
-docker-compose down
+docker compose down
 
 # View logs for all services
-docker-compose logs
+docker compose logs
 
 # Follow logs in real-time
-docker-compose logs -f
+docker compose logs -f
 
 # List running services
-docker-compose ps
+docker compose ps
 
 # Build or rebuild services
-docker-compose build
+docker compose build
 
 # Restart services
-docker-compose restart
+docker compose restart
 
 # Remove stopped service containers
-docker-compose rm -f
+docker compose rm -f
 ```
 
 ## Useful Docker Commands
@@ -225,11 +224,11 @@ echo "Current directory: $(pwd)"
 echo ""
 
 echo "Starting services..."
-docker-compose up -d
+docker compose up -d
 
 echo ""
 echo "Running containers:"
-docker-compose ps
+docker compose ps
 
 echo ""
 echo "System status:"
@@ -259,15 +258,15 @@ chmod +x manage_docker.sh
 
 {{< callout type="success" title="Quick Reference" >}}
 **Essential shortcuts:**
-- `docker-compose up -d`: Start services in detached mode.
-- `docker-compose down -v`: Stop services and remove volumes.
+- `docker compose up -d`: Start services in detached mode.
+- `docker compose down -v`: Stop services and remove volumes.
 - `docker ps -q`: List only container IDs.
 - `docker stop $(docker ps -q)`: Stop all running containers.
 {{< /callout >}}
 
 ## Troubleshooting
 
-- **Container Won't Start**: Check logs with `docker logs <container_name>` or `docker-compose logs`.
+- **Container Won't Start**: Check logs with `docker logs <container_name>` or `docker compose logs`.
 - **Port Conflicts**: Ensure the host port (e.g., `8080`) isn't already in use (`netstat -tuln`).
 - **Image Pull Issues**: Verify internet connectivity or check Docker Hub for the image.
 - **Volume Permission Issues**: Ensure the host user has access to mounted directories.

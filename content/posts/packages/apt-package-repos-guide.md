@@ -463,8 +463,8 @@ grep -r --include '*.list' '^deb ' /etc/apt/sources.list /etc/apt/sources.list.d
 # List only PPAs
 grep -r --include '*.list' '^deb ' /etc/apt/sources.list.d/ | grep ppa.launchpad.net
 
-# Show repository keys
-apt-key list
+# Show repository keys (apt-key is deprecated: keys are plain files now)
+ls -l /etc/apt/trusted.gpg.d/ /etc/apt/keyrings/ /usr/share/keyrings/ 2>/dev/null
 ```
 
 ### Add/Remove Repositories
@@ -581,7 +581,9 @@ echo ""
 
 echo "5. Outdated Package Keys:"
 echo "------------------------"
-apt-key list | grep -E "expired:"
+for k in /etc/apt/trusted.gpg.d/*.gpg /etc/apt/keyrings/*.gpg /usr/share/keyrings/*.gpg; do
+    [ -f "$k" ] && gpg --show-keys "$k" 2>/dev/null | grep -q "expired" && echo "$k"
+done
 EOF
 
 chmod +x security-audit.sh
@@ -798,7 +800,7 @@ echo "Documentation generated: system-documentation.md"
 |---------|---------|
 | `add-apt-repository ppa:user/repo` | Add PPA |
 | `add-apt-repository --remove ppa:user/repo` | Remove PPA |
-| `apt-key list` | List repository keys |
+| `ls /etc/apt/keyrings/ /etc/apt/trusted.gpg.d/` | List repository keys (`apt-key` is deprecated) |
 | `apt update` | Update package lists |
 | `apt-cache search TERM` | Search packages |
 

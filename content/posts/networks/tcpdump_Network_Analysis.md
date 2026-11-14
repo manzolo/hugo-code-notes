@@ -98,7 +98,7 @@ Capture packets on an interface (e.g., `eth0`):
 ```bash
 sudo tcpdump -i eth0
 ```
-![tcpdump capturing HTTP traffic on eth0](/images/tcpdump-capture.png "Output of sudo tcpdump -i eth0 port 80")
+![tcpdump capturing an HTTP request and its reply](/images/tcpdump-capture.png "Output of sudo tcpdump -i enp2s0 -nn -c 6 port 80 (the interface name depends on your machine)")
 Example output:
 ```
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
