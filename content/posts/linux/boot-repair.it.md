@@ -2,7 +2,7 @@
 title: "Riparare il boot di Linux (Debian/Ubuntu)"
 url: "2025/09/linux-boot-repair-debian/ubuntu/"
 date: 2025-09-27T15:34:00+02:00
-lastmod: 2025-09-27T15:34:00+02:00
+lastmod: 2026-11-14T18:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["boot-repair", "grub", "recovery", "troubleshooting", "ubuntu"]
@@ -39,169 +39,149 @@ I problemi di boot su Debian o Ubuntu possono impedire al sistema di avviarsi, s
 
 ## Riparare il boot di Linux
 
+{{< callout type="info" >}}
+**Provato davvero** (2026-11-14): i comandi qui sotto sono stati eseguiti su macchine virtuali rotte apposta - Ubuntu 26.04 in UEFI con la partizione di sistema EFI svuotata, Ubuntu 24.04 in BIOS con il codice di avvio cancellato dall'MBR - dal supporto live di Ubuntu, ed entrambi i sistemi sono ripartiti. Nelle VM il disco era `/dev/vda`; su un PC di solito è `/dev/sda`, oppure `/dev/nvme0n1` con le partizioni `nvme0n1p1`, `nvme0n1p2`.
+{{< /callout >}}
+
+### Prima di tutto: UEFI o BIOS?
+
+Dalla sessione live:
+
+```bash
+ls /sys/firmware/efi >/dev/null 2>&1 && echo UEFI || echo BIOS
+lsblk -o NAME,SIZE,FSTYPE,PARTTYPENAME
+```
+
+La sessione live deve girare nella **stessa modalità** del sistema installato: per riparare un'installazione UEFI, avvia la chiavetta live dalla sua voce UEFI nel menu di avvio del firmware.
+
 ### Riparare il boot UEFI
 
-I sistemi UEFI usano una EFI System Partition (ESP) per conservare GRUB e i file di boot. Se la ESP manca, è corrotta o è configurata male, il sistema può non avviarsi.
+Lo schema più comune, ed è quello della VM di prova: la partizione 1 è la partizione di sistema EFI (ESP, FAT32, qualche centinaio di MB), la partizione 2 è il filesystem di root.
 
-#### Preparazione delle partizioni
-Per preparare o riparare la ESP e la partizione di root:
+Quando la ESP è vuota o danneggiata il firmware non trova niente da avviare:
 
-```bash
-sudo fdisk -l  # List disks to identify the correct one
-sudo fdisk /dev/sda  # Replace sda with your disk
+![Il firmware segnala che non c'è nessuna opzione avviabile](/images/linux-boot-uefi-no-bootable.png "La ESP è stata svuotata: nessuna opzione o dispositivo avviabile")
 
-# Select EFI System Partition (ESP) - FAT32
-# Verify partition layout with 'p'
-p
-# If ESP exists (typically 100-550 MB, type EFI System Partition), format it
-t
-1  # Select partition 1 (verify it’s the ESP)
-ef # Set type to EFI System Partition
-w  # Write changes
-
-# Format ESP as FAT32
-sudo mkfs.vfat -F 32 /dev/sda1  # Verify sda1 is the ESP
-```
-
-- **Spiegazione**:
-  - `fdisk -l`: elenca tutti i dischi e le partizioni, per avere conferma del disco giusto (per esempio `/dev/sda`).
-  - `fdisk /dev/sda`: apre il disco in modifica (sostituisci `sda` con il tuo disco).
-  - `p`: stampa la tabella delle partizioni per controllare la ESP (di solito 100-550 MB, tipo EFI).
-  - `t 1 ef`: imposta il tipo di partizione a EFI System Partition, se serve.
-  - `w`: scrive le modifiche sul disco.
-  - `mkfs.vfat -F 32`: formatta la ESP in FAT32 (obbligatorio per UEFI).
-
-#### Montare i filesystem e reinstallare GRUB
-Monta i filesystem necessari e usa un ambiente chroot per reinstallare GRUB:
+#### Montare, entrare nel chroot, reinstallare GRUB
 
 ```bash
-# Mount root partition
-sudo mount /dev/sda2 /mnt  # Replace sda2 with your root partition
+# Root partition first, then the ESP inside it
+sudo mount /dev/sda2 /mnt
+sudo mount /dev/sda1 /mnt/boot/efi
 
-# Mount ESP
-sudo mkdir -p /mnt/boot/efi
-sudo mount /dev/sda1 /mnt/boot/efi  # Replace sda1 with your ESP
+# The live system's /dev, /proc and /sys, recursively
+for d in dev proc sys; do sudo mount --rbind --make-rslave /$d /mnt/$d; done
 
-# Mount other necessary filesystems
-sudo mount --bind /dev /mnt/dev
-sudo mount --bind /proc /mnt/proc
-sudo mount --bind /sys /mnt/sys
-
-# Enter chroot
 sudo chroot /mnt
-
-# Reinstall GRUB for UEFI
-grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB
+grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu
 update-grub
-
-# Exit chroot and unmount
 exit
-sudo umount /mnt/dev /mnt/proc /mnt/sys /mnt/boot/efi /mnt
+
+sudo umount -R /mnt
+efibootmgr
 ```
 
-- **Spiegazione**:
-  - Monta la partizione di root (`/dev/sda2`) e la ESP (`/dev/sda1`) sotto `/mnt`.
-  - Monta in bind `/dev`, `/proc` e `/sys`, che servono al chroot.
-  - `chroot /mnt`: entra nell'ambiente di root del sistema.
-  - `grub-install`: installa GRUB per UEFI sulla ESP.
-  - `update-grub`: aggiorna la configurazione di GRUB perché rilevi il kernel.
-  - Alla fine smonta i filesystem.
+Atteso: `Installation finished. No error reported.` **senza avvisi**, e in `efibootmgr` una voce che punta a `\EFI\ubuntu\shimx64.efi` in cima a `BootOrder`.
 
-#### Creazione manuale della partizione EFI
-Se la ESP manca, creane una:
+![grub-install nel chroot, con le variabili EFI visibili](/images/linux-boot-uefi-grub-install-ok.png "Con --rbind il chroot vede le variabili EFI, e grub-install finisce senza avvisi")
+
+A farlo funzionare sono due dettagli dei montaggi. Nella prova sono stati provati entrambi anche nell'altro modo:
+
+| Scelta | Perché | Senza |
+|--------|--------|-------|
+| `--rbind`, non `--bind` | le variabili EFI stanno in un filesystem a parte montato sotto `/sys` (`/sys/firmware/efi/efivars`); un semplice `--bind` lo lascia fuori | `grub-install` copia i file ma avverte `EFI variables cannot be set on this system`: la voce di avvio non viene scritta |
+| `--make-rslave` | lo smontaggio del chroot non si propaga al sistema live | `umount -R /mnt` fallisce con `target is busy`; e il tentatore `umount -lR` stacca anche il `/dev/pts` del sistema live, dopo di che `sudo` smette di funzionare (`unable to open pty`) |
+
+![grub-install avverte che non può impostare le variabili EFI](/images/linux-boot-uefi-efivars-warning.png "Con un semplice --bind: i file vengono copiati, la voce di avvio no")
+
+`--bootloader-id` è il nome della cartella nella ESP e della voce di avvio: usa quello della tua distribuzione (`ubuntu` su Ubuntu, `debian` su Debian), così i file tornano dove shim e la voce esistente se li aspettano.
+
+**Su Ubuntu il sistema spesso parte anche senza la voce di avvio**: `grub-install` scrive anche la copia di riserva `\EFI\BOOT\BOOTX64.EFI`, che il firmware prova da solo e che al primo avvio ricrea la voce mancante. Nella prova è andata così. Non farci affidamento con altre distribuzioni o altri firmware: controlla `efibootmgr`.
+
+![Il desktop di Ubuntu dopo la riparazione](/images/linux-boot-uefi-repaired-desktop.png "Il sistema riparato, di nuovo sul desktop")
+
+#### Non formattare la ESP «per sicurezza»
+
+Riformattare la ESP le dà un **UUID nuovo**. `/etc/fstab` cerca ancora quello vecchio, e su Ubuntu 26.04 anche l'initramfs. Nella prova il risultato è stato un avvio che aspetta per sempre:
+
+```text
+[    **] Job dev-disk-by\x2duuid-B5D2\x2d58E…tart running (4min 41s / no limit)
+```
+
+Correggere solo `/etc/fstab` non è bastato: il sistema è ripartito soltanto dopo aver rigenerato anche l'initramfs. Quindi formatta la ESP solo se è davvero danneggiata (non si monta, oppure `fsck.vfat` segnala errori), e poi completa il lavoro:
 
 ```bash
-sudo fdisk /dev/sda  # Replace sda with your disk
-
-# Create EFI partition (100MB)
-d
-1  # Delete existing partition if necessary (verify carefully)
-n
-p
-1
-# Accept default start sector
-+100M
-t
-1
-ef  # Set type to EFI System Partition
-w   # Write changes
-
-# Format as FAT32
 sudo mkfs.vfat -F 32 /dev/sda1
-```
+sudo blkid /dev/sda1      # note the new UUID
 
-- **Spiegazione**:
-  - `fdisk /dev/sda`: apre il disco in modifica.
-  - `d 1`: cancella la vecchia partizione (se serve; controlla che non sia una partizione dati).
-  - `n p 1 +100M`: crea una partizione da 100 MB per la ESP.
-  - `t 1 ef`: imposta il tipo di partizione a EFI System Partition.
-  - `mkfs.vfat -F 32`: formatta la partizione in FAT32.
-  - Prosegui con i passi di `grub-install` visti sopra.
-
-### Riparare il boot Legacy (BIOS/MBR)
-
-I sistemi Legacy usano il Master Boot Record (MBR) e un settore di boot sulla partizione di root o su una partizione di boot separata.
-
-#### Reinstallare GRUB
-Monta la partizione di root e reinstalla GRUB:
-
-```bash
-sudo fdisk -l  # List disks to identify the correct one
-sudo mount /dev/sda1 /mnt  # Replace sda1 with your root partition
-
-# Mount other necessary filesystems
-sudo mount --bind /dev /mnt/dev
-sudo mount --bind /proc /mnt/proc
-sudo mount --bind /sys /mnt/sys
-
-# Enter chroot
-sudo chroot /mnt
-
-# Reinstall GRUB for Legacy
-grub-install --target=i386-pc /dev/sda  # Replace sda with your disk
+# mount and chroot exactly as above, then inside the chroot:
+nano /etc/fstab           # put the new UUID on the /boot/efi line
+grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu
 update-grub
-
-# Exit chroot and unmount
+update-initramfs -u -k all
 exit
-sudo umount /mnt/dev /mnt/proc /mnt/sys /mnt
 ```
 
-- **Spiegazione**:
-  - `fdisk -l`: individua il disco e la partizione di root giusti.
-  - Monta la partizione di root (`/dev/sda1`) su `/mnt`.
-  - Monta in bind `/dev`, `/proc` e `/sys` per il chroot.
-  - `grub-install --target=i386-pc`: installa GRUB nell'MBR del disco.
-  - `update-grub`: genera la configurazione di GRUB.
-  - Alla fine smonta i filesystem.
+#### Creare una ESP mancante (disco GPT)
 
-#### Riparare il settore di boot (se GRUB non parte)
-Se il settore di boot è corrotto:
+Una ESP può andare solo in uno **spazio libero**. Non cancellare mai la partizione 1 per farle posto: su molti dischi la partizione 1 è la root o una partizione di dati. Se lo spazio libero non c'è, prima restringi una partizione (GParted dalla sessione live).
+
+```text
+sudo fdisk /dev/sda
+n        new partition: Enter, Enter (first free number and sector)
++512M    size
+t        change the type
+1        number of the new partition (fdisk shows it after n)
+1        type 1 = EFI System on GPT
+w        write and quit
+```
+
+Poi formattala, aggiungi la sua riga a `/etc/fstab` e prosegui come nella sezione precedente. Sui dischi GPT le vecchie risposte da MBR non funzionano: il codice di tipo `ef` lascia la partizione com'è (`Type of partition 1 is unchanged`), e `n p 1` fallisce perché `p` viene letto come numero di partizione.
+
+### Riparare il boot Legacy (BIOS)
+
+Con il BIOS, GRUB si scrive all'inizio del **disco**, non di una partizione. Gli schemi comuni sono due: un disco MBR, oppure un disco GPT con una partizione «BIOS boot» da 1 MB, che è quello che Ubuntu crea quando viene installato in modalità BIOS (la VM di prova).
+
+Quando il codice di avvio non c'è più, il BIOS si ferma lì:
+
+![Il BIOS fermo su Booting from Hard Disk](/images/linux-boot-bios-hang.png "Nessun codice di avvio nell'MBR: il BIOS si ferma su Booting from Hard Disk...")
 
 ```bash
-sudo fdisk /dev/sda  # Replace sda with your disk
-a
-1  # Set partition 1 as bootable (verify it’s the root or boot partition)
-w  # Write changes
+# Root partition: often sda1 on MBR disks, sda2 on GPT disks with a BIOS boot partition
+sudo mount /dev/sda2 /mnt
+for d in dev proc sys; do sudo mount --rbind --make-rslave /$d /mnt/$d; done
 
-# Reinstall GRUB as above
-sudo mount /dev/sda1 /mnt
 sudo chroot /mnt
 grub-install --target=i386-pc /dev/sda
 update-grub
 exit
-sudo umount /mnt/dev /mnt/proc /mnt/sys /mnt
+
+sudo umount -R /mnt
 ```
 
-- **Spiegazione**:
-  - `a 1`: marca come avviabile la partizione di root o di boot.
-  - Reinstalla GRUB per essere sicuri che il settore di boot sia configurato bene.
+![grub-install e update-grub per BIOS nel chroot](/images/linux-boot-bios-repair.png "La riparazione Legacy: grub-install sul disco, update-grub trova il kernel, umount -R non lascia niente montato")
+
+I montaggi di `/dev`, `/proc` e `/sys` non sono facoltativi. Senza, `grub-install` si ferma subito:
+
+![grub-install che fallisce in un chroot senza /dev, e fdisk che rifiuta il comando a su GPT](/images/linux-boot-bios-chroot-without-binds.png "Senza i montaggi: cannot find a device for /boot/grub (is /dev mounted?)")
+
+#### Il flag di avvio
+
+La stessa schermata mostra l'altra trappola: `a` (attiva il flag di avvio) esiste solo sui dischi **MBR**; su GPT `fdisk` risponde `a: unknown command`. A GRUB il flag non serve, ma alcuni BIOS vecchi rifiutano di avviare un disco MBR senza una partizione attiva. Solo in quel caso:
+
+```text
+sudo fdisk /dev/sda
+a        toggle the bootable flag (MBR disks only)
+1        partition number
+w        write and quit
+```
 
 ## Consigli e risoluzione dei problemi
 
 ### Problemi comuni
 - **GRUB non si carica**:
   - Controlla qual è il disco giusto con `fdisk -l` o `lsblk`.
-  - Assicurati che la ESP (`/dev/sda1`) sia in FAT32 per UEFI, oppure che la partizione di root/boot sia avviabile per Legacy.
+  - Controlla che la sessione live giri nella stessa modalità (UEFI o BIOS) del sistema installato.
 - **«No such device» o kernel non trovato**:
   - Lancia `update-grub` nell'ambiente chroot perché rilevi il kernel.
   - Controlla che `/boot` contenga i file del kernel e dell'initramfs (per esempio `vmlinuz`, `initrd.img`).
@@ -213,7 +193,7 @@ sudo umount /mnt/dev /mnt/proc /mnt/sys /mnt
   - Formattare per errore la partizione di root o quella dei dati vuol dire perdere i dati. Fai un backup dei dati critici prima di procedere.
 - **Errori nel chroot**:
   - Assicurati che tutti i filesystem (`/dev`, `/proc`, `/sys`, `/boot/efi`) siano montati correttamente.
-  - Se nel chroot ti serve internet, monta in bind `/run`: `sudo mount --bind /run /mnt/run`.
+  - Montali con `--rbind --make-rslave` come sopra. Non usare `--rbind` su `/run`: porta dentro anche i montaggi della sessione dell'utente live, e poi `umount -R` fallisce su `/mnt/run/user/1000` (visto nella prova).
 
 ### Altri consigli
 - **Backup della configurazione di GRUB**: prima di modificarla, fai una copia di `/boot/grub/grub.cfg`:
@@ -222,7 +202,7 @@ sudo umount /mnt/dev /mnt/proc /mnt/sys /mnt
   ```
 - **Controlla la disposizione delle partizioni**: usa `lsblk` o `fdisk -l` per avere conferma di dischi e partizioni prima di qualunque modifica.
 - **Prova il boot**: dopo le riparazioni, riavvia e prova. Se GRUB non si carica, avvia di nuovo dalla live USB e ripeti i comandi.
-- **Lo strumento Boot Repair**: se i passi manuali non bastano, usa lo strumento `boot-repair` in una sessione live:
+- **Lo strumento Boot Repair**: se i passi manuali non bastano, usa lo strumento `boot-repair` in una sessione live (il PPA vale solo per i supporti live di Ubuntu):
   ```bash
   sudo add-apt-repository ppa:yannubuntu/boot-repair
   sudo apt update

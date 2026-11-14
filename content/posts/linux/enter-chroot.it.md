@@ -64,13 +64,8 @@ sudo mount /dev/sda2 /mnt  # Replace sda2 with your root partition
 Perché l'ambiente chroot funzioni del tutto, monta le directory di sistema essenziali:
 
 ```bash
-# Mount /dev, /proc, /sys
-sudo mount --bind /dev /mnt/dev
-sudo mount --bind /proc /mnt/proc
-sudo mount --bind /sys /mnt/sys
-
-# Mount /dev/pts for pseudo-terminals (required for some commands)
-sudo mount --bind /dev/pts /mnt/dev/pts
+# Mount /dev, /proc, /sys recursively (this includes /dev/pts and the EFI variables)
+for d in dev proc sys; do sudo mount --rbind --make-rslave /$d /mnt/$d; done
 
 # Mount EFI System Partition (ESP) for UEFI systems
 sudo mkdir -p /mnt/boot/efi
@@ -78,8 +73,8 @@ sudo mount /dev/sda1 /mnt/boot/efi  # Replace sda1 with your ESP (typically FAT3
 ```
 
 - **Spiegazione**:
-  - `--bind`: aggancia le directory di sistema all'ambiente chroot, per dare accesso a dispositivi, processi e informazioni di sistema.
-  - `/dev/pts`: serve per le operazioni legate al terminale.
+  - `--rbind`: aggancia ogni directory **con tutto quello che c'è montato sotto**: `/dev/pts` per i terminali e `/sys/firmware/efi/efivars`, senza il quale `grub-install` non riesce a scrivere la voce di avvio UEFI.
+  - `--make-rslave`: lo smontaggio del chroot non si propaga al sistema live. Senza, `umount -R /mnt` fallisce con `target is busy` (provato; vedi la [guida alla riparazione del boot di Linux](/it/2025/09/linux-boot-repair-debian/ubuntu/)).
   - `/boot/efi`: monta la ESP se il tuo sistema usa UEFI (controlla con `lsblk` o `fdisk -l`).
 
 ### Passo 4: facoltativo - attiva la rete
@@ -112,7 +107,7 @@ Le operazioni più comuni nell'ambiente chroot:
 
 - **Aggiornare GRUB**:
   ```bash
-  grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB  # UEFI
+  grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu  # UEFI (debian on Debian)
   # OR
   grub-install --target=i386-pc /dev/sda  # Legacy (replace sda with your disk)
   update-grub
@@ -126,9 +121,10 @@ Le operazioni più comuni nell'ambiente chroot:
   apt update
   apt upgrade
   ```
-- **Riparare il filesystem**:
+- **Riparare il filesystem** (mai su un filesystem montato: il manuale di `e2fsck` dice che non è sicuro, e che se ti chiede se proseguire «l'unica risposta corretta è no»):
   ```bash
-  fsck /dev/sda2  # Replace sda2 with your root partition
+  # NOT here: from the live session, after Step 7, with the partition unmounted
+  sudo fsck /dev/sda2  # Replace sda2 with your root partition
   ```
 
 ### Passo 7: esci e smonta
@@ -136,12 +132,12 @@ Esci dal chroot e smonta tutti i filesystem:
 
 ```bash
 exit
-sudo umount /mnt/dev/pts /mnt/dev /mnt/proc /mnt/sys /mnt/boot/efi /mnt/run /mnt
+sudo umount -R /mnt
 ```
 
 - **Spiegazione**:
   - `exit`: esce dall'ambiente chroot.
-  - `umount`: smonta tutti i filesystem montati, bind compresi. Assicurati che siano tutti smontati per evitare problemi sul disco.
+  - `umount -R`: smonta `/mnt` e tutto quello che c'è montato sotto, nell'ordine giusto. Grazie a `--make-rslave` lascia stare il sistema live.
 
 ## Consigli e risoluzione dei problemi
 
@@ -151,7 +147,7 @@ sudo umount /mnt/dev/pts /mnt/dev /mnt/proc /mnt/sys /mnt/boot/efi /mnt/run /mnt
   - Controlla che `/mnt/bin/bash` esista. Se manca, il sistema può essere corrotto oppure usare un'altra shell (prova per esempio `chroot /mnt /bin/sh`).
 - **ESP mancante sui sistemi UEFI**:
   - Controlla con `lsblk` che la ESP (`/dev/sda1`, FAT32) sia montata su `/mnt/boot/efi`.
-  - Se manca, creane una (vedi la [guida alla riparazione del boot di Linux](Linux_Boot_Repair.md)).
+  - Se manca, creane una (vedi la [guida alla riparazione del boot di Linux](/it/2025/09/linux-boot-repair-debian/ubuntu/)).
 - **Niente internet nel chroot**:
   - Verifica che `/etc/resolv.conf` sia stato copiato e che `/run` sia montata.
   - Prova con `ping 8.8.8.8` o `apt update`.
@@ -163,7 +159,7 @@ sudo umount /mnt/dev/pts /mnt/dev /mnt/proc /mnt/sys /mnt/boot/efi /mnt/run /mnt
     ```bash
     lsof | grep /mnt
     ```
-  - Termina i processi oppure, come ultima risorsa, usa `umount -l` (smontaggio «lazy»).
+  - Termina quei processi e riprova. Evita `umount -l` («lazy») sui montaggi `--rbind` fatti senza `--make-rslave`: nella prova ha staccato anche il `/dev/pts` del sistema live, e `sudo` ha smesso di funzionare (`unable to open pty`).
 
 ### Altri consigli
 - **Backup dei file critici**: prima del chroot, fai una copia dei file importanti (per esempio `/mnt/etc`, `/mnt/boot`):

@@ -63,13 +63,8 @@ sudo mount /dev/sda2 /mnt  # Replace sda2 with your root partition
 For a fully functional chroot environment, mount essential system directories:
 
 ```bash
-# Mount /dev, /proc, /sys
-sudo mount --bind /dev /mnt/dev
-sudo mount --bind /proc /mnt/proc
-sudo mount --bind /sys /mnt/sys
-
-# Mount /dev/pts for pseudo-terminals (required for some commands)
-sudo mount --bind /dev/pts /mnt/dev/pts
+# Mount /dev, /proc, /sys recursively (this includes /dev/pts and the EFI variables)
+for d in dev proc sys; do sudo mount --rbind --make-rslave /$d /mnt/$d; done
 
 # Mount EFI System Partition (ESP) for UEFI systems
 sudo mkdir -p /mnt/boot/efi
@@ -77,8 +72,8 @@ sudo mount /dev/sda1 /mnt/boot/efi  # Replace sda1 with your ESP (typically FAT3
 ```
 
 - **Explanation**:
-  - `--bind`: Binds system directories to the chroot environment to provide access to devices, processes, and system information.
-  - `/dev/pts`: Required for terminal-related operations.
+  - `--rbind`: binds each directory **with everything mounted under it**: `/dev/pts` for terminals and `/sys/firmware/efi/efivars`, without which `grub-install` cannot write the UEFI boot entry.
+  - `--make-rslave`: unmounting the chroot does not travel back to the live system. Without it `umount -R /mnt` fails with `target is busy` (tested; see the [Linux Boot Repair guide](/2025/09/linux-boot-repair-debian/ubuntu/)).
   - `/boot/efi`: Mount the ESP if your system uses UEFI (verify with `lsblk` or `fdisk -l`).
 
 ### Step 4: Optional - Enable Networking
@@ -111,7 +106,7 @@ Common tasks in the chroot environment include:
 
 - **Update GRUB**:
   ```bash
-  grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB  # UEFI
+  grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu  # UEFI (debian on Debian)
   # OR
   grub-install --target=i386-pc /dev/sda  # Legacy (replace sda with your disk)
   update-grub
@@ -125,9 +120,10 @@ Common tasks in the chroot environment include:
   apt update
   apt upgrade
   ```
-- **Repair Filesystem**:
+- **Repair Filesystem** (never on a mounted filesystem: the `e2fsck` manual calls it not safe, and if it asks whether to go on, "the only correct answer is no"):
   ```bash
-  fsck /dev/sda2  # Replace sda2 with your root partition
+  # NOT here: from the live session, after Step 7, with the partition unmounted
+  sudo fsck /dev/sda2  # Replace sda2 with your root partition
   ```
 
 ### Step 7: Exit and Unmount
@@ -135,12 +131,12 @@ Exit the chroot and unmount all filesystems:
 
 ```bash
 exit
-sudo umount /mnt/dev/pts /mnt/dev /mnt/proc /mnt/sys /mnt/boot/efi /mnt/run /mnt
+sudo umount -R /mnt
 ```
 
 - **Explanation**:
   - `exit`: Exits the chroot environment.
-  - `umount`: Unmounts all bound and mounted filesystems. Ensure all are unmounted to avoid disk issues.
+  - `umount -R`: Unmounts `/mnt` and everything mounted under it, in the right order. Thanks to `--make-rslave` it leaves the live system alone.
 
 ## Tips and Troubleshooting
 
@@ -150,7 +146,7 @@ sudo umount /mnt/dev/pts /mnt/dev /mnt/proc /mnt/sys /mnt/boot/efi /mnt/run /mnt
   - Check that `/mnt/bin/bash` exists. If missing, the system may be corrupted or use a different shell (e.g., try `chroot /mnt /bin/sh`).
 - **Missing ESP in UEFI systems**:
   - Verify the ESP (`/dev/sda1`, FAT32) is mounted at `/mnt/boot/efi` using `lsblk`.
-  - If missing, create one (see [Linux Boot Repair Guide](Linux_Boot_Repair.md)).
+  - If missing, create one (see the [Linux Boot Repair guide](/2025/09/linux-boot-repair-debian/ubuntu/)).
 - **No internet in chroot**:
   - Confirm `/etc/resolv.conf` is copied and `/run` is mounted.
   - Test with `ping 8.8.8.8` or `apt update`.
@@ -162,7 +158,7 @@ sudo umount /mnt/dev/pts /mnt/dev /mnt/proc /mnt/sys /mnt/boot/efi /mnt/run /mnt
     ```bash
     lsof | grep /mnt
     ```
-  - Kill processes or use `umount -l` (lazy unmount) as a last resort.
+  - Kill those processes and retry. Avoid `umount -l` (lazy) on `--rbind` mounts made without `--make-rslave`: in the test it also detached the live system's own `/dev/pts`, and `sudo` stopped working (`unable to open pty`).
 
 ### Additional Tips
 - **Backup Critical Files**: Before chroot, back up important files (e.g., `/mnt/etc`, `/mnt/boot`):
