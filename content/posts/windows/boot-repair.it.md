@@ -92,6 +92,31 @@ bcdboot c:\Windows /s S: /f UEFI
   - `bcdboot`: copia i file di boot dalla partizione di Windows (`c:\Windows`) alla ESP (`S:`).
   - `/f UEFI`: indica il tipo di firmware UEFI, per garantire la compatibilità.
 
+#### La prova: rompere e riparare una ESP vera
+I due blocchi qui sopra sono stati eseguiti esattamente come sono scritti su una macchina virtuale Windows 11 (UEFI, GPT) a cui era stata svuotata apposta la partizione di sistema EFI. Le schermate vengono da un Windows in italiano; i comandi sono gli stessi in ogni lingua.
+
+1. **Il guasto.** Senza i file di avvio il firmware non trova niente da far partire. Questo è il messaggio del firmware della VM (OVMF); un PC fisico lo dice con altre parole, oppure entra direttamente nella sua schermata di configurazione.
+
+   ![Il firmware segnala che non c'è nessun dispositivo avviabile](/images/win-boot-no-bootable-device.png "La ESP è vuota: nessuna opzione o dispositivo avviabile")
+
+2. **Il prompt dei comandi.** Avvia dal supporto di installazione di Windows e premi `Maiusc+F10` sulla prima schermata: si apre un prompt dei comandi, senza passare dai menu di ripristino.
+
+3. **Le partizioni.** `list part` mostra lo schema che i comandi danno per scontato (ESP = 1, Windows = 3). La ESP viene formattata ed entrambe le partizioni ricevono una lettera.
+
+   ![Sessione diskpart: la ESP formattata in FAT32 e le lettere assegnate](/images/win-boot-diskpart-repair.png "I comandi diskpart di questa guida, digitati così come sono")
+
+4. **I file di avvio.** `bcdboot c:\Windows /s S: /f UEFI` risponde «Creazione dei file di avvio completata.»
+
+5. **Il riavvio.** Togli il supporto di installazione e riavvia: Windows parte normalmente.
+
+   ![Il desktop di Windows 11 dopo la riparazione](/images/win-boot-repaired-desktop.png "Di nuovo sul desktop dopo bcdboot")
+
+**Su una macchina virtuale con disco VirtIO** `list disk` non mostra niente: il supporto di installazione non ha il driver. Caricalo prima dalla ISO virtio-win (qui montata come `E:`), poi rilancia `diskpart`:
+
+```cmd
+drvload E:\viostor\w11\amd64\viostor.inf
+```
+
 #### Creare a mano la partizione EFI
 Se la ESP manca, creane una:
 
