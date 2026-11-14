@@ -3,7 +3,7 @@ title: "Leggere i log di Windows: dal codice di errore alla causa"
 url: "2026/09/reading-windows-logs-from-error-code-to-root-cause/"
 date: 2026-09-18T11:00:00+02:00
 lastmod: 2026-11-14T21:00:00+01:00
-draft: true
+draft: false
 author: "Manzolo"
 tags: ["windows", "logs", "troubleshooting", "dism", "sfc", "quick-tip"]
 categories: ["Quick Pills"]
