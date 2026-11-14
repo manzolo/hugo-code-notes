@@ -91,6 +91,31 @@ bcdboot c:\Windows /s S: /f UEFI
   - `bcdboot`: Copies boot files from the Windows partition (`c:\Windows`) to the ESP (`S:`).
   - `/f UEFI`: Specifies UEFI firmware type to ensure compatibility.
 
+#### Proof: Breaking and Repairing a Real ESP
+The two blocks above were run exactly as written on a Windows 11 virtual machine (UEFI, GPT) whose EFI System Partition had been emptied on purpose. The screenshots come from an Italian Windows; the commands are the same in every language.
+
+1. **The failure.** With the boot files gone the firmware finds nothing to start. This is the message of the VM firmware (OVMF); a physical PC words it differently, or drops straight into its setup screen.
+
+   ![Firmware reporting that no bootable device was found](/images/win-boot-no-bootable-device.png "The ESP is empty: no bootable option or device was found")
+
+2. **The command prompt.** Boot from the Windows installation media and press `Shift+F10` on the first screen: a command prompt opens, without going through the repair menus.
+
+3. **The partitions.** `list part` shows the layout the commands assume (ESP = 1, Windows = 3). The ESP is formatted and both partitions get a letter.
+
+   ![diskpart session: the ESP formatted as FAT32 and letters assigned](/images/win-boot-diskpart-repair.png "The diskpart commands of this guide, typed as written")
+
+4. **The boot files.** `bcdboot c:\Windows /s S: /f UEFI` answers `Boot files successfully created.`
+
+5. **The reboot.** Remove the installation media and restart: Windows starts normally.
+
+   ![Windows 11 desktop after the repair](/images/win-boot-repaired-desktop.png "Back to the desktop after bcdboot")
+
+**On a virtual machine with a VirtIO disk** `list disk` shows nothing: the installation media has no driver for it. Load it first from the virtio-win ISO (here mounted as `E:`), then run `diskpart` again:
+
+```cmd
+drvload E:\viostor\w11\amd64\viostor.inf
+```
+
 #### Manual EFI Partition Creation
 If the ESP is missing, create one:
 
