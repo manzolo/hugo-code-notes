@@ -13,5 +13,4 @@ searchHidden: false
 layout: "archives"
 ---
 
-Qui sotto ci sono i post già disponibili in italiano. La traduzione procede un articolo
-alla volta: tutti gli altri si leggono per ora [in inglese](https://notes.manzolo.it/posts/).
+Guide, tutorial e appunti tecnici in italiano. Ogni articolo esiste anche [in inglese](https://notes.manzolo.it/posts/): il selettore di lingua in alto porta alla stessa pagina nell'altra lingua.

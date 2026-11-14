@@ -1,5 +1,7 @@
 ---
 title: "Firefox Sync in casa con Docker"
+url: "2026/11/self-hosting-firefox-sync-with-docker/"
+aliases: ["/2026/11/firefox-sync-in-casa-con-docker/"]
 date: 2026-11-14T10:00:00+01:00
 lastmod: 2026-11-14T10:00:00+01:00
 draft: false

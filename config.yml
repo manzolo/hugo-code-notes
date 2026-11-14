@@ -47,14 +47,16 @@ languages:
     weight: 2
     title: "Manzolo Code Notes"
     # NB: Hugo prefixes language menu URLs with /it/: "/posts/" becomes /it/posts/.
-    # Dal 2026-11-14 i post si traducono uno alla volta (nome.it.md accanto a nome.md):
-    # sotto /it/ compaiono solo quelli tradotti, gli altri restano in inglese.
+    # Dal 2026-11-14 ogni post ha il gemello italiano (nome.it.md accanto a nome.md) con
+    # lo stesso indirizzo dell'inglese sotto /it/ (front matter: url senza barra iniziale).
+    # Un post nuovo senza gemello compare solo in inglese.
     menu:
       main:
         - { name: Home, url: /it/, weight: 10 }
         - { name: Post, url: /posts/, weight: 20 }
         - { name: Categorie, url: /categories/, weight: 30 }
         - { name: Tag, url: /tags/, weight: 40 }
+        - { name: Cerca, url: /search/, weight: 50 }
     params:
       profileMode:
         enabled: false
