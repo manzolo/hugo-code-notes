@@ -62,7 +62,7 @@ certutil -error 0x8007025d
 ```
 
 ```text
-0x8007025d (WIN32: 605 ERROR_BAD_COMPRESSION_BUFFER) -- 2147942493 (-2147024803)
+0x8007025d (WIN32: 605 ERROR_BAD_COMPRESSION_BUFFER) -- 2147943005 (-2147024291)
 Error message text: The specified buffer contains ill-formed data.
 ```
 
@@ -253,9 +253,11 @@ Get-WinEvent -FilterHashtable @{
     Format-Table TimeCreated, Id, ProviderName, Message -AutoSize -Wrap
 ```
 
-`-ErrorAction SilentlyContinue` non è decorazione: `Get-WinEvent` solleva un errore
-bloccante quando un filtro non trova niente, e sembra un comando rotto anziché una buona
-notizia.
+`-ErrorAction SilentlyContinue` non è decorazione: `Get-WinEvent` scrive un errore
+(«Impossibile trovare eventi che soddisfino i criteri di selezione specificati») quando un
+filtro non trova niente, e sembra un comando rotto anziché una buona notizia. È un errore
+non bloccante: lo script prosegue comunque, e questa opzione tiene solo il testo rosso
+fuori dallo schermo.
 
 ### Gli stessi cinque minuti del tuo errore
 

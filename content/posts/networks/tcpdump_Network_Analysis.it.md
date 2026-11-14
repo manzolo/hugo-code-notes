@@ -284,7 +284,7 @@ sudo tcpdump -i eth0 -s 100  # Capture first 100 bytes of each packet
 
 ## Risoluzione dei problemi
 - **Nessun pacchetto catturato**: verifica l'interfaccia con `ip link show` e assicurati che ci sia traffico (per esempio `ping 8.8.8.8`).
-- **Permesso negato**: lancialo con `sudo` o controlla i permessi dell'interfaccia (`sudo chmod o+rw /dev/bpf*` se serve).
+- **Permesso negato**: lancialo con `sudo` o controlla i permessi dell'interfaccia (`/dev/bpf*` esiste solo su BSD e macOS). Su Linux, per catturare senza `sudo`, dai al programma le due capability che gli servono: ``sudo setcap cap_net_raw,cap_net_admin=eip $(which tcpdump)``.
 - **Uso alto della CPU**: limita i pacchetti con `-c` o usa filtri precisi.
 - **Sintassi del filtro non valida**: controlla la sintassi BPF (per esempio `port 80` e non `port=80`). Per i dettagli c'è `man tcpdump`.
 - **Guarda i log**: controlla `/var/log/syslog` o `journalctl` per gli errori.

@@ -187,7 +187,7 @@ services:
       - FLASK_ENV=production
     restart: always
     # Remove volume mount (use image code)
-    volumes: []
+    volumes: !reset []
     deploy:
       replicas: 2
       resources:
@@ -198,7 +198,7 @@ services:
   db:
     restart: always
     # Don't expose port externally
-    ports: []
+    ports: !reset []
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
@@ -216,6 +216,8 @@ services:
           cpus: '0.5'
           memory: 512M
 ```
+
+**Why `!reset`**: when Compose merges files, lists are **added together**, not replaced. A plain `volumes: []` or `ports: []` in the override removes nothing: the bind mount and the published port of the base file stay. `!reset []` is what actually clears them (check with `docker compose -f docker-compose.yml -f docker-compose.prod.yml config`). Also mind `replicas: 2` together with a fixed host port in the base file: the second replica fails with `port is already allocated`. Publish a port range, or leave publishing to a reverse proxy.
 
 ### Usage Commands
 

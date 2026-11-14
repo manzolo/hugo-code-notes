@@ -283,7 +283,7 @@ sudo tcpdump -i eth0 -s 100  # Capture first 100 bytes of each packet
 
 ## Troubleshooting
 - **No Packets Captured**: Verify the interface with `ip link show` and ensure traffic is present (e.g., `ping 8.8.8.8`).
-- **Permission Denied**: Run with `sudo` or check interface permissions (`sudo chmod o+rw /dev/bpf*` if needed).
+- **Permission Denied**: Run with `sudo` or check interface permissions (`/dev/bpf*` exists only on BSD and macOS). On Linux, to capture without `sudo`, give the binary the two capabilities it needs: ``sudo setcap cap_net_raw,cap_net_admin=eip $(which tcpdump)``.
 - **High CPU Usage**: Limit packets with `-c` or use specific filters.
 - **Invalid Filter Syntax**: Check BPF syntax (e.g., `port 80` not `port=80`). Use `man tcpdump` for reference.
 - **Check Logs**: View `/var/log/syslog` or `journalctl` for errors.

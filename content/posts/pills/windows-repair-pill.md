@@ -52,6 +52,30 @@ connection. Stopping those services belongs to a *different* procedure - the
 - where the point is to release `SoftwareDistribution` and `catroot2`, not to repair files.
 {{< /callout >}}
 
+## 🧪 Proof: the same damage, SFC first and DISM first
+
+This was run on a Windows 11 virtual machine. One system file (`sort.exe`) was overwritten **in place**: since the copy in `System32` is a hard link to the one in the component store, both ended up damaged - exactly the case this page is about. The screenshots come from an Italian Windows.
+
+**1. SFC alone.** It finds the damage and cannot repair it: the good copy it would use is damaged too.
+
+![sfc /scannow: corrupt files found, some could not be repaired](/images/win-repair-1-sfc-unable.png "SFC first: found corrupt files but was unable to fix some of them")
+
+**2. DISM RestoreHealth.** It downloads the payload through Windows Update and repairs the store. On this machine it took about 20 minutes, most of them standing at 60-70%: that is normal, do not interrupt it.
+
+![DISM /RestoreHealth: the restore operation completed successfully](/images/win-repair-2-dism-restored.png "DISM: the restore operation completed successfully")
+
+At this point the copy in the store is good again (its hash is back to the original), while `System32\sort.exe` is **still** the damaged one: DISM repairs the store, not the files in use.
+
+**3. SFC straight away refuses.** Something the usual instructions skip: when DISM has really repaired something, SFC answers that a repair is pending and wants a reboot first.
+
+![sfc /scannow asking for a reboot before it can run](/images/win-repair-3-sfc-reboot-needed.png "A system repair is pending: restart Windows and run sfc again")
+
+**4. Reboot, then SFC.** Now it has a good copy to take, and it repairs the file. `sort` works again and its hash matches the original.
+
+![sfc /scannow: corrupt files found and repaired](/images/win-repair-4-sfc-repaired.png "After DISM and a reboot: found corrupt files and successfully repaired them")
+
+So the order in practice is: **DISM, reboot if it repaired anything, SFC.**
+
 ## 🔧 Automated Repair Script
 
 Save this as `windows_repair.bat` and **run as Administrator**:
@@ -276,6 +300,7 @@ from and reports it is fine - which tells you nothing about your Windows.
 | "found corrupt files and repaired them" | ✅ Fixed | Reboot and run SFC again; check `CBS.log` |
 | "found corrupt files but was unable to fix" | ⚠️ The store is damaged too | Run DISM `/RestoreHealth`, then SFC again |
 | "could not perform the requested operation" | ❌ A pending operation blocks it | Reboot (finishes pending updates) and retry |
+| "There is a system repair pending which requires reboot to complete" | ⏳ DISM has just repaired the store | Reboot, then run SFC |
 
 ### DISM Output Messages
 

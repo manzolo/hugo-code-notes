@@ -53,6 +53,30 @@ connessione internet. Fermare quei servizi fa parte di una procedura *diversa* -
 - dove lo scopo è liberare `SoftwareDistribution` e `catroot2`, non riparare dei file.
 {{< /callout >}}
 
+## 🧪 La prova: lo stesso danno, prima SFC e poi DISM
+
+Eseguita su una macchina virtuale Windows 11. Un file di sistema (`sort.exe`) è stato sovrascritto **sul posto**: siccome la copia in `System32` è un collegamento fisico a quella nel component store, si sono danneggiate entrambe - esattamente il caso di cui parla questa pagina. Le schermate vengono da un Windows in italiano.
+
+**1. SFC da solo.** Trova il danno e non riesce a ripararlo: anche la copia buona che userebbe è danneggiata.
+
+![sfc /scannow: trovati file danneggiati, alcuni non ripristinati](/images/win-repair-1-sfc-unable.png "Prima SFC: non è stato possibile ripristinare alcuni dei file danneggiati trovati")
+
+**2. DISM RestoreHealth.** Scarica il necessario attraverso Windows Update e ripara lo store. Su questa macchina ci ha messo circa 20 minuti, quasi tutti fermo al 60-70%: è normale, non va interrotto.
+
+![DISM /RestoreHealth: operazione di ripristino riuscita](/images/win-repair-2-dism-restored.png "DISM: operazione di ripristino riuscita")
+
+A questo punto la copia nello store è di nuovo buona (la sua impronta è tornata quella originale), mentre `System32\sort.exe` è **ancora** quello danneggiato: DISM ripara lo store, non i file in uso.
+
+**3. SFC lanciato subito si rifiuta.** Una cosa che le istruzioni di solito saltano: quando DISM ha riparato davvero qualcosa, SFC risponde che c'è un ripristino in sospeso e vuole prima un riavvio.
+
+![sfc /scannow chiede un riavvio prima di poter partire](/images/win-repair-3-sfc-reboot-needed.png "Ripristino di sistema in corso: riavviare Windows ed eseguire nuovamente sfc")
+
+**4. Riavvio, poi SFC.** Adesso ha una copia buona da cui prendere, e ripara il file. `sort` funziona di nuovo e la sua impronta coincide con l'originale.
+
+![sfc /scannow: file danneggiati trovati e ripristinati](/images/win-repair-4-sfc-repaired.png "Dopo DISM e un riavvio: file danneggiati trovati e ripristinati")
+
+Quindi l'ordine, in pratica, è: **DISM, riavvio se ha riparato qualcosa, SFC.**
+
 ## 🔧 Script di riparazione automatica
 
 Salvalo come `windows_repair.bat` ed **eseguilo come amministratore**:
@@ -277,6 +301,7 @@ fatto il boot e riferisce che va tutto bene - il che non ti dice niente del tuo 
 | «found corrupt files and repaired them» | ✅ Riparato | Riavvia e rilancia SFC; controlla `CBS.log` |
 | «found corrupt files but was unable to fix» | ⚠️ È danneggiato anche lo store | Lancia DISM `/RestoreHealth`, poi di nuovo SFC |
 | «could not perform the requested operation» | ❌ Lo blocca un'operazione in sospeso | Riavvia (così si completano gli aggiornamenti in sospeso) e riprova |
+| «Per completare il ripristino di sistema in corso è necessario riavviare il computer» | ⏳ DISM ha appena riparato lo store | Riavvia, poi lancia SFC |
 
 ### I messaggi di DISM
 

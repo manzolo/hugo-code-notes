@@ -60,7 +60,7 @@ certutil -error 0x8007025d
 ```
 
 ```text
-0x8007025d (WIN32: 605 ERROR_BAD_COMPRESSION_BUFFER) -- 2147942493 (-2147024803)
+0x8007025d (WIN32: 605 ERROR_BAD_COMPRESSION_BUFFER) -- 2147943005 (-2147024291)
 Error message text: The specified buffer contains ill-formed data.
 ```
 
@@ -248,8 +248,10 @@ Get-WinEvent -FilterHashtable @{
     Format-Table TimeCreated, Id, ProviderName, Message -AutoSize -Wrap
 ```
 
-`-ErrorAction SilentlyContinue` is not decoration: `Get-WinEvent` throws a terminating
-error when a filter matches nothing, which reads like a broken command rather than good news.
+`-ErrorAction SilentlyContinue` is not decoration: `Get-WinEvent` writes an error
+(`No events were found that match the specified selection criteria`) when a filter matches
+nothing, which reads like a broken command rather than good news. It is a non-terminating
+error: the script goes on anyway, and this option simply keeps the red text off the screen.
 
 ### The same five minutes as your failure
 
