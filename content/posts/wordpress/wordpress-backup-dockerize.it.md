@@ -2,6 +2,7 @@
 title: "Wordpress: backup (file e database) e dockerizzazione"
 url: "2025/09/wordpress-backing-up-files-and-database-and-dockerizing/"
 date: 2025-09-27T09:20:30Z
+lastmod: 2026-11-14T19:00:00+01:00
 categories: ["Docker & Containers"]
 series: ["Docker Essentials"]
 tags: ["wordpress", "backup", "docker", "mysql", "migration"]
@@ -223,6 +224,7 @@ phpMyAdmin Container (wordpress_mysite_phpmyadmin):
   ```bash
   ssh -L 3306:dbserver.local:3306 user@ssh.example.com
   ```
+  Lo script si collega al `DB_HOST` che legge da `wp-config.php`: perché il backup passi dal tunnel, nella copia locale di `wp-config.php` imposta `DB_HOST` a `127.0.0.1` (non `localhost`, che fa usare al client MySQL il socket Unix locale invece del tunnel).
 - **Tieni d'occhio i container**: usa `./manage.sh status` per controllare la salute dei container prima di un backup o di un ripristino.
 
 ## Risoluzione dei problemi

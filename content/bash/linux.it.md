@@ -190,7 +190,7 @@ rm -rf directory/
 ```bash
 # Change file permissions
 chmod 644 file.txt  # rw-r--r--
-chmod -R 755 directory/  # rwx-r-xr-x
+chmod -R 755 directory/  # rwxr-xr-x
 
 # Change file ownership
 chown user:group file.txt
@@ -216,14 +216,12 @@ sudo chmod 700 /data
 ```bash
 # Check network interfaces
 ip addr
-ifconfig  # If available
 
 # Test connectivity
 ping google.com
 
 # Display network connections
-netstat -tuln  # List listening ports
-ss -tuln
+ss -tuln  # List listening ports (netstat is in the old net-tools package)
 
 # Trace route to a host
 traceroute google.com
@@ -247,7 +245,7 @@ sudo ufw status
 Elenca le porte aperte e verifica la connettività:
 
 ```bash
-sudo netstat -tuln
+sudo ss -tulnp
 curl http://localhost:80  # Test web server
 ```
 
@@ -334,7 +332,7 @@ sudo apt autoremove
 sudo journalctl
 
 # View logs for a specific service
-sudo journalctl -u sshd
+sudo journalctl -u ssh   # the unit is ssh on Debian/Ubuntu, sshd on Fedora/Arch
 
 # Follow logs in real-time
 sudo journalctl -f
@@ -345,7 +343,7 @@ sudo journalctl -f
 Tieni d'occhio i tentativi di accesso SSH falliti:
 
 ```bash
-sudo journalctl -u sshd | grep "Failed password"
+sudo journalctl -u ssh | grep "Failed password"
 ```
 
 ## Uno script pratico

@@ -1,7 +1,7 @@
 ---
 title: "LUKS Disk Encryption Management Guide (Debian/Ubuntu)"
 date: 2025-10-03T14:00:00+02:00
-lastmod: 2025-10-03T14:00:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["luks", "encryption", "cryptsetup", "security", "disk-encryption"]
@@ -28,10 +28,10 @@ LUKS ensures data at rest is protected, making it essential for securing sensiti
 ## What is LUKS?
 
 LUKS is a disk encryption specification that uses a master key protected by one or more user-supplied passphrases. Key features include:
-- **Multiple Keys**: Up to 8 key slots for different passphrases or keyfiles.
+- **Multiple Keys**: Up to 32 key slots on LUKS2 (8 on the older LUKS1) for different passphrases or keyfiles.
 - **Header**: Stores metadata (cipher, hash, key slots) at the beginning of the device.
 - **Integration**: Works with LVM (encrypted volumes), loop devices (encrypted files), or full disks.
-- **Security**: Uses strong ciphers (e.g., AES-XTS) and PBKDF2 for passphrase strengthening.
+- **Security**: Uses strong ciphers (e.g., AES-XTS) and a key derivation function for passphrase strengthening: Argon2id on LUKS2, the cryptsetup default since 2.1 (Ubuntu 20.04, Debian 11), PBKDF2 on LUKS1.
 - **Unlocking**: Devices are "opened" to create a decrypted mapper device (e.g., `/dev/mapper/cryptdisk`).
 
 LUKS is managed with the `cryptsetup` tool, allowing encryption of partitions, containers, or RAID arrays.
@@ -178,12 +178,20 @@ sudo cryptsetup luksClose cryptdisk
 
 **Output** (luksDump excerpt):
 ```
-LUKS header information for /dev/sdb1
-Version:        1
-Cipher name:    aes
-Cipher mode:    xts-plain64
-Hash spec:      sha256
-Keyslots:       0 active
+LUKS header information
+Version:        2
+...
+Data segments:
+  0: crypt
+        offset: 16777216 [bytes]
+        length: (whole device)
+        cipher: aes-xts-plain64
+...
+Keyslots:
+  0: luks2
+        Key:        512 bits
+        ...
+        PBKDF:      argon2id
 ...
 ```
 
@@ -215,7 +223,7 @@ sudo cryptsetup luksHeaderRestore /dev/sdb1 --header-backup-file luks_header.bac
 ## Command Breakdown
 
 - **luksFormat**: Initializes LUKS on a device.
-- **luksOpen/luksClose**: Unlocks/locks the encrypted device.
+- **luksOpen/luksClose**: Unlocks/locks the encrypted device (older syntax, still accepted; the current form is `open`/`close`).
 - **luksAddKey/luksRemoveKey/luksChangeKey**: Manages key slots.
 - **resize**: Expands the encrypted device (with inner filesystem resize).
 - **luksHeaderBackup/Restore**: Backs up/restores metadata.
@@ -255,7 +263,8 @@ Common Options: `--cipher`, `--key-size`, `--hash` for custom security.
 - **Device Not Found**: Check `lsblk`; reload modules (`modprobe dm-crypt`).
 - **Mount Fails**: Ensure opened with `luksOpen`; check filesystem with `fsck`.
 - **Forgot All Keys**: Data is irrecoverable—emphasizes backups.
-- **Slow Encryption**: Use stronger hardware or fewer iterations (`--iter-time`).
+- **Slow Unlock**: `--iter-time` (PBKDF time in ms) sets how long unlocking takes, not the read/write speed; lower it with `luksChangeKey --iter-time`.
+- **Slow Encryption**: Check `cryptsetup benchmark` and CPU AES support (AES-NI); use stronger hardware if needed.
 
 ## Next Steps
 In future tutorials, we'll explore:

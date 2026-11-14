@@ -2,7 +2,7 @@
 title: "SPF, DMARC and DKIM: The Email Security Triad"
 description: "Understanding how SPF, DMARC, and DKIM work to protect your emails from spam and phishing"
 date: 2026-02-16T10:00:00+02:00
-lastmod: 2026-02-16T10:00:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["email", "security", "spf", "dmarc", "dkim", "spam", "phishing"]
@@ -40,7 +40,7 @@ v=spf1 include:_spf.google.com ~all
 In this example:
 - `v=spf1` indicates the SPF version
 - `include:_spf.google.com` includes Google servers for sending email
-- `~all` indicates that other unspecified permissions should be treated as "soft fail"
+- `~all` indicates that mail from any server not matched by the previous mechanisms should be treated as "soft fail" (accepted but marked as suspicious)
 
 ## What is DKIM (DomainKeys Identified Mail)?
 
@@ -84,8 +84,8 @@ In this example:
 - `v=DMARC1` indicates the DMARC version
 - `p=quarantine` policy: put non-authenticated emails in quarantine
 - `rua=mailto:reports@yourdomain.com` address for aggregate reports
-- `ruf=mailto:forensic@yourdomain.com` address for detailed reports
-- `fo=1` report violations
+- `ruf=mailto:forensic@yourdomain.com` address for failure (forensic) reports, one per failing message; many providers never send them
+- `fo=1` send a failure report when any of the underlying checks (SPF or DKIM) fails, not only when both fail
 
 ## Practical Implementation
 
@@ -93,7 +93,7 @@ In this example:
 
 To properly implement these protocols, you need to configure DNS records for your domain:
 
-1. **SPF Record**: Add a TXT record with the SPF domain
+1. **SPF Record**: Add a TXT record on the domain itself (e.g. `yourdomain.com`) containing the SPF policy (`v=spf1 ...`)
 2. **DKIM Record**: Add a TXT record for the DKIM public key
 3. **DMARC Record**: Add a TXT record for DMARC
 
@@ -133,16 +133,19 @@ After configuration, it's important to test the protocols:
 ### 1. False Positives
 
 **Problem**: Legitimate emails are rejected or quarantined
+
 **Solution**: Verify SPF and DMARC configuration, add authorized servers
 
 ### 2. Incorrect Configuration
 
 **Problem**: Configuration doesn't work properly
+
 **Solution**: Use testing tools and verify DNS records
 
 ### 3. Missing Reporting
 
 **Problem**: No DMARC reports received
+
 **Solution**: Verify reporting address is correct and accessible
 
 ## Conclusion

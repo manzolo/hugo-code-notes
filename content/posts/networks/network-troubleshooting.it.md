@@ -2,7 +2,7 @@
 title: "Diagnosi di rete: un metodo a livelli"
 url: "2026/09/network-troubleshooting-a-layered-diagnostic-method/"
 date: 2026-09-18T12:00:00+02:00
-lastmod: 2026-09-18T12:00:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["networking", "troubleshooting", "linux", "windows", "dns"]
@@ -429,6 +429,9 @@ diagnosi precedente:
 
 ```bash
 cat /etc/hosts
+```
+
+```cmd
 type C:\Windows\System32\drivers\etc\hosts
 ```
 

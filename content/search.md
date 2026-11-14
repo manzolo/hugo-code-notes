@@ -2,7 +2,7 @@
 title: "Search"
 description: "Search through all posts, tutorials and guides"
 date: 2025-09-25T12:00:00+01:00
-lastmod: 2025-09-25T12:00:00+01:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 showToc: false
@@ -36,14 +36,6 @@ Find exactly what you're looking for across all tutorials, guides, and programmi
 - [Python automation](/?s=python+automation)
 - [Linux administration](/?s=linux+admin)
 
-## Quick Filters
-
-Use these shortcuts to filter results:
-- **Recent posts**: Posts from the last 30 days
-- **Most popular**: Highly-viewed content
-- **Beginner-friendly**: Perfect for newcomers
-- **Advanced topics**: In-depth technical content
-
 ---
 
-*Not finding what you need? Feel free to [suggest a topic](mailto:your-email@example.com) for future posts!*
+*Not finding what you need? Feel free to [suggest a topic](https://github.com/manzolo) for future posts!*

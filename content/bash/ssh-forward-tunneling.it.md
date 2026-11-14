@@ -167,7 +167,7 @@ ssh -R [remote_port]:[local_host]:[local_port] [user]@[ssh_server]
 ssh -R 8080:localhost:3000 user@ssh.example.com
 ```
 - **Spiegazione**: un servizio che gira sulla tua macchina su `localhost:3000` diventa raggiungibile sul server SSH, su `ssh.example.com:8080`.
-- **Utilizzo**: dal server SSH, o da un'altra macchina che lo raggiunge, accedi al servizio su `http://ssh.example.com:8080`.
+- **Utilizzo**: sul server SSH apri `http://localhost:8080`. Di default `sshd` lega gli inoltri remoti solo al suo loopback: per raggiungere `http://ssh.example.com:8080` da altre macchine, sul server serve `GatewayPorts yes` (oppure `clientspecified`) in `sshd_config`.
 
 ### Forwarding dinamico (proxy SOCKS)
 
@@ -220,7 +220,7 @@ Con `sshfs` puoi montare in locale un filesystem remoto via SSH, e lavorare sui 
 sshfs user@ssh.example.com:/remote/path /local/mountpoint
 ```
 - **Spiegazione**: monta la cartella `/remote/path` del server SSH su `/local/mountpoint` della tua macchina.
-- **Smontare**: usa `umount /local/mountpoint` per sganciarlo.
+- **Smontare**: usa `fusermount -u /local/mountpoint` (`fusermount3 -u` sui sistemi recenti): da utente normale `umount` non funziona su un montaggio FUSE.
 
 Installa `sshfs`:
 ```bash

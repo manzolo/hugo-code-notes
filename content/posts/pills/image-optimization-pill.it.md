@@ -2,6 +2,7 @@
 title: "Ottimizzare le immagini in blocco"
 url: "2025/10/batch-image-optimization/"
 date: 2025-10-05T16:00:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["images", "optimization", "compression", "web", "quick-tip"]
@@ -140,7 +141,7 @@ find . -type f \( -name "*.jpg" -o -name "*.jpeg" \) \
 
 ```bash
 # Preserve EXIF but remove other metadata
-find . -name "*.jpg" -exec jpegoptim -P --max=70 --all-progressive {} \;
+find . -name "*.jpg" -exec jpegoptim -P --max=70 --strip-all --keep-exif {} \;
 
 # Or keep all metadata
 find . -name "*.jpg" -exec jpegoptim -P --max=70 {} \;
@@ -163,8 +164,8 @@ echo "✅ All images optimized!"
 ```
 
 Livelli di ottimizzazione PNG:
-- `-o2`: veloce, buona compressione
-- `-o5`: bilanciato (predefinito)
+- `-o2`: veloce, buona compressione (predefinito)
+- `-o5`: più lento, compressione migliore
 - `-o7`: compressione migliore, più lento
 </details>
 
@@ -200,9 +201,8 @@ FOLDER="imgfolder"
 BEFORE=$(du -sh "$FOLDER" | cut -f1)
 echo "Size before: $BEFORE"
 
-# Optimize
-cd "$FOLDER"
-find . -name "*.jpg" -exec jpegoptim -P --max=70 --strip-all {} \; | tee /tmp/optim.log
+# Optimize (no cd: du below needs the original relative path)
+find "$FOLDER" -name "*.jpg" -exec jpegoptim -P --max=70 --strip-all {} \; | tee /tmp/optim.log
 
 # Calculate size after
 AFTER=$(du -sh "$FOLDER" | cut -f1)
@@ -482,8 +482,8 @@ find . -name "*.jpg" | parallel -j4 jpegoptim -P --max=70 --strip-all {}
 ## 🚀 One-liner avanzati
 
 ```bash
-# Optimize, show progress, count files
-find . -name "*.jpg" | tee >(wc -l) | xargs -I {} jpegoptim --max=70 {}
+# Count files, then optimize (one result line per file)
+echo "Files: $(find . -name "*.jpg" | wc -l)"; find . -name "*.jpg" -exec jpegoptim --max=70 {} \;
 
 # Optimize only recent files (last 7 days)
 find . -name "*.jpg" -mtime -7 -exec jpegoptim --max=70 --strip-all {} \;

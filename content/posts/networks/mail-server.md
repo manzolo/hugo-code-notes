@@ -1,7 +1,7 @@
 ---
 title: "Mail Server Installation and Configuration Guide (Debian/Ubuntu)"
 date: 2025-10-04T11:00:00+02:00
-lastmod: 2025-10-04T11:00:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["mail-server", "postfix", "dovecot", "email", "configuration"]
@@ -116,7 +116,7 @@ Key configurations:
 myhostname = mail.example.com
 mydomain = example.com
 myorigin = $mydomain
-mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+mydestination = $myhostname, localhost.$mydomain, localhost
 relayhost =
 mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
 mailbox_size_limit = 0
@@ -136,7 +136,6 @@ virtual_alias_maps = hash:/etc/postfix/virtual_aliases
 # TLS settings
 smtpd_tls_cert_file=/etc/letsencrypt/live/mail.example.com/fullchain.pem
 smtpd_tls_key_file=/etc/letsencrypt/live/mail.example.com/privkey.pem
-smtpd_use_tls=yes
 smtpd_tls_auth_only = yes
 smtpd_tls_security_level = may
 smtp_tls_security_level = may
@@ -163,6 +162,8 @@ smtpd_recipient_restrictions =
     reject_unknown_sender_domain,
     reject_unknown_recipient_domain
 ```
+
+`$mydomain` is deliberately left out of `mydestination`: `example.com` is served as a virtual domain, and a domain listed in both `mydestination` and `virtual_mailbox_domains` is delivered to local Unix accounts instead of the virtual mailboxes (Postfix logs "do not list domain example.com in BOTH mydestination and virtual_mailbox_domains").
 
 Configure submission port (587):
 ```bash
@@ -263,6 +264,10 @@ sudo systemctl enable postfix
 ```
 
 ### 5. Install Dovecot (IMAP/POP3 Server)
+
+{{< callout type="info" >}}
+The Dovecot configuration below is written for **Dovecot 2.3** (Debian 12, Ubuntu 22.04/24.04). Dovecot 2.4, shipped with Debian 13, changed the syntax (for example `mail_location`, `ssl_cert = <...` and `disable_plaintext_auth` no longer exist): see the official [2.3 to 2.4 upgrade notes](https://doc.dovecot.org/latest/installation/upgrade/2.3-to-2.4.html).
+{{< /callout >}}
 
 Install Dovecot:
 ```bash
@@ -366,7 +371,7 @@ Add/modify auth service:
 ```
 service auth {
   unix_listener /var/spool/postfix/private/auth {
-    mode = 0666
+    mode = 0660
     user = postfix
     group = postfix
   }
@@ -548,7 +553,7 @@ sudo nano /etc/postfix/main.cf
 Add:
 ```
 milter_default_action = accept
-milter_protocol = 2
+milter_protocol = 6
 smtpd_milters = inet:localhost:8891
 non_smtpd_milters = inet:localhost:8891
 ```
@@ -607,6 +612,7 @@ doveadm quota get -u user1@example.com
 
 Send test email:
 ```bash
+sudo apt install mailutils  # provides the mail command
 echo "Test email body" | mail -s "Test Subject" -r user1@example.com user2@example.com
 ```
 
@@ -638,7 +644,7 @@ sudo systemctl restart postfix dovecot
 ```bash
 sudo systemctl status postfix
 sudo systemctl status dovecot
-sudo netstat -tulpn | grep -E ':(25|587|993|995)'
+sudo ss -tulpn | grep -E ':(25|587|993|995)'
 ```
 
 **Output**:
@@ -646,10 +652,10 @@ sudo netstat -tulpn | grep -E ':(25|587|993|995)'
 ● postfix.service - Postfix Mail Transport Agent
      Active: active (running) since Sat 2025-10-04 14:00:00 UTC
 
-tcp        0      0 0.0.0.0:25              0.0.0.0:*               LISTEN      1234/master
-tcp        0      0 0.0.0.0:587             0.0.0.0:*               LISTEN      1234/master
-tcp        0      0 0.0.0.0:993             0.0.0.0:*               LISTEN      5678/dovecot
-tcp        0      0 0.0.0.0:995             0.0.0.0:*               LISTEN      5678/dovecot
+tcp   LISTEN 0      100          0.0.0.0:25        0.0.0.0:*    users:(("master",pid=1234,fd=13))
+tcp   LISTEN 0      100          0.0.0.0:587       0.0.0.0:*    users:(("master",pid=1234,fd=17))
+tcp   LISTEN 0      100          0.0.0.0:993       0.0.0.0:*    users:(("dovecot",pid=5678,fd=38))
+tcp   LISTEN 0      100          0.0.0.0:995       0.0.0.0:*    users:(("dovecot",pid=5678,fd=40))
 ```
 
 ### Example 4: Test Email Send/Receive
@@ -750,15 +756,15 @@ Configure Apache/Nginx to serve Roundcube and access via browser.
 Install SpamAssassin:
 ```bash
 sudo apt install spamassassin spamc
-sudo systemctl enable spamassassin
-sudo systemctl start spamassassin
+sudo systemctl enable spamd    # called spamassassin on older releases
+sudo systemctl start spamd
 ```
 
 Configure Postfix to use SpamAssassin:
 ```bash
 sudo nano /etc/postfix/master.cf
 ```
-Add:
+Replace the existing `smtp inet` line with the one below (do not add a second one) and add the `spamassassin` service:
 ```
 smtp      inet  n       -       y       -       -       smtpd
   -o content_filter=spamassassin
@@ -770,13 +776,13 @@ spamassassin unix -     n       n       -       -       pipe
 ## Command Breakdown
 
 - **postfix**: MTA (Mail Transfer Agent) for sending/receiving emails
-- **dovecot**: MDA (Mail Delivery Agent) for IMAP/POP3 access
+- **dovecot**: IMAP/POP3 server that gives mail clients access to the mailboxes (here Postfix delivers the mail)
 - **postmap**: Builds hash database from text files
 - **doveadm**: Dovecot administration tool for user management
 - **certbot**: Obtains and renews SSL certificates
 - **opendkim**: Implements DKIM email authentication
 - **mailq**: Shows mail queue status
-- **mail**: Command-line email sending utility
+- **mail**: Command-line email sending utility (package `mailutils`)
 
 ## Use Cases
 
@@ -810,7 +816,7 @@ spamassassin unix -     n       n       -       -       pipe
 **Cannot Receive Email**:
 - Verify MX and A records point correctly
 - Check if port 25 is blocked by ISP
-- Verify Postfix is listening: `sudo netstat -tulpn | grep :25`
+- Verify Postfix is listening: `sudo ss -tulpn | grep :25`
 - Check relay restrictions in `/etc/postfix/main.cf`
 
 **Authentication Fails**:
@@ -839,7 +845,7 @@ spamassassin unix -     n       n       -       -       pipe
 
 **High Load/Performance Issues**:
 - Check for spam attacks: `sudo mailq | wc -l`
-- Monitor connections: `sudo netstat -an | grep :25 | wc -l`
+- Monitor connections: `sudo ss -tan | grep :25 | wc -l`
 - Review Postfix queue: `sudo postqueue -p`
 - Clear queue if needed: `sudo postsuper -d ALL`
 

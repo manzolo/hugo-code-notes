@@ -2,7 +2,7 @@
 title: "Guida all'installazione e alla configurazione di RDP (Debian/Ubuntu)"
 url: "2025/10/rdp-installation-and-configuration-guide-debian/ubuntu/"
 date: 2025-10-04T00:26:00+02:00
-lastmod: 2025-10-04T00:26:00+02:00
+lastmod: 2026-11-14T21:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["rdp", "xrdp", "remote-desktop", "ubuntu", "installation"]
@@ -16,192 +16,133 @@ comments: true
 disableHLJS: false
 disableShare: false
 searchHidden: false
+description: "xrdp e XFCE su Debian/Ubuntu: le due righe che decidono il desktop e la cifratura, entrambe silenziose quando mancano, e come tenere chiusa la porta 3389"
 ---
 
-# Guida all'installazione e alla configurazione di RDP (Debian/Ubuntu)
+# Installare e configurare RDP (Debian/Ubuntu)
 
-## Introduzione
-
-Il Remote Desktop Protocol (RDP) permette di accedere da remoto all'ambiente desktop grafico di un sistema Linux. XRDP è un server RDP open source che accetta connessioni dai client RDP (per esempio Desktop remoto di Windows o Remmina) verso un sistema Debian/Ubuntu. Questa guida spiega come installare e configurare XRDP su Debian/Ubuntu con l'ambiente desktop XFCE, una scelta leggera ed efficiente per i desktop remoti. Comprende i passi per mettere in piedi un server RDP sicuro e funzionante per l'accesso remoto.
-
-## Cos'è XRDP?
-
-XRDP è un'implementazione open source del protocollo RDP, che permette connessioni desktop remote verso sistemi Linux. Le caratteristiche principali:
-- **Accesso multipiattaforma**: ti colleghi da client Windows, macOS o Linux.
-- **Integrazione con XFCE**: un ambiente desktop leggero, per prestazioni fluide.
-- **Sicurezza**: con la giusta configurazione supporta SSL per la cifratura.
-- **Supporto multiutente**: consente più sessioni contemporanee.
-
-Questa guida configura XRDP con XFCE per avere un desktop remoto essenziale ed efficiente.
-
-## Prerequisiti
-
-- **Debian/Ubuntu**: versione 20.04+.
-- **Pacchetti**: `xrdp`, `xfce4`, `xfce4-goodies`, `ubuntu-desktop` (facoltativo, per le dipendenze del desktop completo).
-- **Accesso root**: i comandi richiedono `sudo`.
-- **Rete**: la porta 3389 (quella predefinita di RDP) aperta sul firewall.
-- **Client**: un client RDP (per esempio Microsoft Remote Desktop o Remmina).
-
-Installa i prerequisiti:
-```bash
-sudo apt update
-sudo apt install -y curl
-```
-
-Verifica la rete:
-```bash
-sudo ss -tuln | grep 3389  # Check if port 3389 is open
-```
-
-## Avvertenza importante: metti in sicurezza l'installazione
-
-{{< callout type="warning" >}}
-**Attenzione**: esporre RDP (porta 3389) su internet senza le protezioni adeguate (password robuste, regole del firewall o una VPN) può portare ad accessi non autorizzati. Configura sempre un firewall (per esempio UFW) per restringere l'accesso, e fai un backup delle configurazioni critiche (per esempio `/etc/xrdp/xrdp.ini`) prima di modificarle. Prova in locale prima di aprire alle reti esterne.
+{{< callout type="info" >}}
+**A cosa serve**: raggiungere il desktop grafico di una macchina Linux da Windows (Desktop remoto), da macOS o da un altro Linux, con xrdp e XFCE. Provato il 2026-11-14 con xrdp 0.9.24 su Ubuntu 24.04: le righe di registro e la schermata qui sotto vengono da quella macchina.
 {{< /callout >}}
 
-## Come installare e configurare XRDP
+## 🧭 Due righe decidono tutto
 
-### 1. Installa XRDP e XFCE
-Installa i pacchetti necessari per XRDP e per l'ambiente desktop XFCE.
+Un'installazione di xrdp funziona o no per due dettagli, ed entrambi falliscono **in silenzio**:
+
+| Riga | Decide | Se manca |
+|------|--------|----------|
+| `~/.xsession` | **quale desktop** parte nella sessione RDP | ti ritrovi il desktop predefinito del sistema |
+| `adduser xrdp ssl-cert` | **se la connessione è cifrata con TLS** | si collega lo stesso, con la vecchia sicurezza RDP al posto di TLS |
+
+Tutto il resto è installare pacchetti.
+
+## 📦 Installazione
 
 ```bash
 sudo apt update
-sudo apt install --no-install-recommends ubuntu-desktop
-sudo apt install -y xfce4 xfce4-goodies xrdp
+sudo apt install xrdp xfce4 xfce4-goodies
 ```
 
-- `--no-install-recommends`: riduce al minimo le dipendenze di `ubuntu-desktop`.
-- `xfce4-goodies`: aggiunge strumenti extra di XFCE, per lavorarci meglio.
+Sulla macchina di prova sono bastati questi tre pacchetti: `xorgxrdp` (il server X delle sessioni RDP) arriva insieme a `xrdp`. `ubuntu-desktop` non serve, e su Debian non esiste.
 
-### 2. Configura XRDP
-Di' a XRDP quale desktop avviare. È un'impostazione per utente: lancialo come l'utente che entrerà via RDP.
+## 🖥️ Scegliere il desktop: `~/.xsession`
 
 ```bash
+# As the user who will connect over RDP, not as root
 echo xfce4-session > ~/.xsession
 ```
 
-- `~/.xsession`: lo legge `/etc/X11/Xsession`, che XRDP esegue all'accesso (`/etc/xrdp/startwm.sh`). È l'unica riga che decide il desktop.
+All'accesso xrdp esegue `/etc/xrdp/startwm.sh`, che passa la mano a `/etc/X11/Xsession`, che legge `~/.xsession`. È un file **per utente**: ogni utente che si collega via RDP ha bisogno del suo.
 
-**Nota**: le versioni precedenti di questa guida accodavano anche `exec startxfce4` a `/etc/xrdp/xrdp.ini`. Quello è un file INI, non uno script, e la riga non fa niente. Provato su Ubuntu 24.04 con xrdp 0.9.24: con `~/.xsession` parte XFCE che la riga ci sia o no; senza `~/.xsession` parte il desktop predefinito del sistema (LXQt sulla macchina di prova) anche con la riga al suo posto.
+Cosa è successo nella prova, in tre varianti:
 
-### 3. Aggiungi l'utente XRDP al gruppo SSL
-Dai a XRDP l'accesso ai certificati SSL, per le connessioni sicure.
+| `exec startxfce4` in `xrdp.ini` | `~/.xsession` | Desktop partito |
+|---|---|---|
+| sì | sì | XFCE |
+| no | sì | XFCE |
+| sì | no | LXQt (quello predefinito della macchina) |
 
-```bash
-sudo adduser xrdp ssl-cert
-```
-
-### 4. Riavvia il servizio XRDP
-Applica le modifiche riavviando il servizio XRDP.
-
-```bash
-sudo systemctl restart xrdp
-```
-
-Verifica che il servizio sia in esecuzione:
-```bash
-sudo systemctl status xrdp
-```
-
-### 5. Configura il firewall
-Consenti le connessioni RDP sulla porta 3389.
-
-```bash
-sudo apt install -y ufw
-sudo ufw allow 3389/tcp
-sudo ufw enable
-```
-
-### 6. Prova la connessione remota
-- Da un client (per esempio Desktop remoto di Windows):
-  - Inserisci l'indirizzo IP del server (per esempio `192.168.1.100:3389`).
-  - Usa il tuo nome utente e la tua password di Linux.
-- Verifica che il desktop XFCE si carichi da remoto.
+Quindi la riga che molte guide (anche questa, nella prima versione) accodano a `/etc/xrdp/xrdp.ini` non fa niente: quello è un file INI, non uno script.
 
 ![Il desktop XFCE servito via RDP, visto dalla finestra del client](/images/rdp-xfce-session.png "La sessione XFCE dell'utente demo, aperta con un client RDP")
 
-## Esempio
+## 🔒 TLS: il gruppo `ssl-cert`
 
-### Esempio: installazione completa di XRDP
-Lancia questo script per automatizzare tutto il procedimento:
+xrdp gira come utente `xrdp` e usa il certificato «snakeoil» del sistema, la cui chiave sta in `/etc/ssl/private`: leggibile solo da root e dal gruppo `ssl-cert`. Nella prova, subito dopo l'installazione `xrdp` **non** era in quel gruppo, e ogni connessione andava così:
 
-Lancialo come l'utente che si collegherà (usa `sudo` dove serve): `~/.xsession` deve appartenere a quell'utente, non a root.
+```text
+[ERROR] Cannot read private key file /etc/xrdp/key.pem: Permission denied
+[WARN ] Cannot accept TLS connections because certificate or private key file is not readable. ...
+[INFO ] Security protocol: configured [RDP], requested [SSL|HYBRID|RDP], selected [RDP]
+```
+
+Il client si è collegato lo stesso. Sullo schermo niente dice che TLS è spento. Dopo:
+
+```bash
+sudo adduser xrdp ssl-cert
+sudo systemctl restart xrdp
+```
+
+la stessa connessione dice:
+
+```text
+[INFO ] Security protocol: configured [SSL|RDP], requested [SSL|HYBRID|RDP], selected [SSL]
+[INFO ] TLS connection established from ::ffff:127.0.0.1 port 39446: TLSv1.3 with cipher TLS_AES_256_GCM_SHA384
+```
+
+Per controllare la tua, collegati una volta e poi:
+
+```bash
+sudo grep -E "Security protocol|TLS connection|private key" /var/log/xrdp.log | tail -3
+```
+
+## 🔥 Non lasciare la porta 3389 aperta al mondo
+
+Il modo migliore è non aprirla per niente e passare da SSH, che con ogni probabilità hai già:
+
+```bash
+# On the client: local port 13389 -> port 3389 of the server, inside SSH
+ssh -N -L 13389:localhost:3389 user@server
+
+# Then point the RDP client at localhost:13389
+```
+
+Nella prova xrdp ha visto arrivare la sessione da `127.0.0.1`, l'uscita del tunnel, con TLS sopra: due strati di cifratura, e solo la porta 22 esposta. (La porta 13389 evita lo scontro con la 3389 su un client Windows che ha il suo Desktop remoto acceso.)
+
+Se deve essere raggiungibile direttamente, limitala alla rete locale:
+
+```bash
+# Only from the local network, never from everywhere
+sudo ufw allow from 192.168.1.0/24 to any port 3389 proto tcp
+sudo ufw status
+```
+
+## 📜 Tutto in uno script
 
 ```bash
 #!/bin/bash
-echo "Installing RDP..."
-sudo apt update -qqy > /dev/null
-sudo apt install -qqy --no-install-recommends ubuntu-desktop > /dev/null
-sudo apt install -qqy xfce4 xfce4-goodies xrdp > /dev/null
-sudo adduser xrdp ssl-cert > /dev/null
-sudo systemctl restart xrdp > /dev/null
+# Run as the user who will connect over RDP (sudo is used where needed)
+set -e
+sudo apt update -qq
+sudo apt install -y -qq xrdp xfce4 xfce4-goodies
+sudo adduser xrdp ssl-cert
 echo xfce4-session > ~/.xsession
-echo "XRDP installed and configured. Connect via RDP to $(hostname -I | awk '{print $1}'):3389"
+sudo systemctl restart xrdp
+echo "Connect with an RDP client to $(hostname -I | awk '{print $1}'):3389"
 ```
 
-Salvalo come `install_xrdp.sh`, rendilo eseguibile e lancialo:
-```bash
-chmod +x install_xrdp.sh
-./install_xrdp.sh
-```
+## 🪤 Le trappole, in una tabella
 
-**Output** (esempio):
-```
-XRDP installed and configured. Connect via RDP to 192.168.1.100:3389
-```
+| Sintomo | Causa |
+|---------|-------|
+| La sessione RDP apre un altro desktop | Manca `~/.xsession` per **quell'**utente |
+| `Cannot read private key file /etc/xrdp/key.pem` nel registro | `xrdp` non è in `ssl-cert`: la connessione funziona, senza TLS |
+| `exec startxfce4` in `xrdp.ini` «non funziona» | Non ha mai funzionato: il desktop lo sceglie `~/.xsession` |
+| `~/.xsession` di proprietà di root | Creato con `sudo tee`: crealo come l'utente |
+| Porta 3389 raggiungibile da internet | Usa il tunnel SSH, oppure `ufw allow from <la tua LAN>` |
 
-Collegati con un client RDP all'IP del server, sulla porta 3389.
+## 📚 Risorse
 
-## I comandi, uno per uno
-
-- **apt install xrdp xfce4**: installa il server XRDP e il desktop XFCE.
-- **adduser xrdp ssl-cert**: dà l'accesso a SSL per le connessioni sicure.
-- **systemctl restart xrdp**: riavvia il servizio XRDP.
-- **echo xfce4-session > ~/.xsession**: imposta XFCE come sessione.
-
-## Casi d'uso
-- **Amministrazione remota**: gestisci i server da remoto con un'interfaccia grafica.
-- **Accesso alla workstation**: raggiungi i desktop Linux da Windows/macOS.
-- **Sviluppo**: usa gli IDE grafici attraverso RDP.
-- **Desktop condivisi**: accesso multiutente per il lavoro collaborativo.
-
-## Consigli da esperti
-- **Proteggilo con SSH**: per sicurezza, fai passare RDP in un tunnel SSH:
-  ```bash
-  ssh -L 3389:localhost:3389 user@remote.host
-  ```
-  Dal client collegati a `localhost:3389`.
-- **Backup delle configurazioni**: salva `/etc/xrdp/xrdp.ini` e `~/.xsession`:
-  ```bash
-  sudo cp /etc/xrdp/xrdp.ini /etc/xrdp/xrdp.ini.bak
-  cp ~/.xsession ~/.xsession.bak
-  ```
-- **L'alternativa leggera**: usa `xfce4` al posto dei desktop più pesanti (per esempio GNOME) per avere prestazioni migliori.
-- **Porta personalizzata**: cambia la porta RDP in `/etc/xrdp/xrdp.ini` (per esempio `port=3390`) e aggiorna il firewall.
-- **Prestazioni**: disattiva le animazioni nelle impostazioni di XFCE per avere sessioni remote più veloci.
-
-{{< callout type="tip" >}}
-**Consiglio**: usa `xfce4-panel --restart` se in RDP il pannello di XFCE non si carica bene.
-{{< /callout >}}
-
-## Risoluzione dei problemi
-- **La connessione RDP fallisce**: controlla `sudo systemctl status xrdp` e assicurati che la porta 3389 sia aperta (`sudo ss -tuln | grep 3389`).
-- **Schermo vuoto**: verifica che `~/.xsession` contenga `xfce4-session` e riavvia XRDP.
-- **Problemi di permessi**: assicurati che l'utente `xrdp` sia nel gruppo `ssl-cert` (`groups xrdp`).
-- **Prestazioni lente**: passa a un tema XFCE più leggero o riduci la risoluzione nel client RDP.
-- **Il firewall blocca**: rilancia `sudo ufw allow 3389/tcp` oppure controlla `ufw status`.
-
-## Prossimi passi
-Nei prossimi tutorial vedremo:
-- Come mettere in sicurezza XRDP con i certificati TLS.
-- Le configurazioni RDP multiutente.
-- Come integrare XRDP con Active Directory.
-
-## Risorse
-- [Documentazione di XRDP](http://xrdp.org/)
-- [Guida a XFCE su Ubuntu](https://ubuntu.com/server/docs/desktops)
-- [Arch Wiki: XRDP](https://wiki.archlinux.org/title/XRDP)
-
----
-
-*Metti in piedi XRDP con XFCE per avere un desktop remoto leggero e sicuro, e provalo in locale prima di esporlo alla rete!*
+- [xrdp](https://www.xrdp.org/) e la sua [wiki su GitHub](https://github.com/neutrinolabs/xrdp/wiki)
+- [Arch Wiki: xrdp](https://wiki.archlinux.org/title/Xrdp)
+- [SSH Forward Tunneling](/it/bash/ssh-forward-tunneling/) - di più su `ssh -L`

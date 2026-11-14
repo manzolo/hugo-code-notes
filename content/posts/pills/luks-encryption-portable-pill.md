@@ -1,6 +1,7 @@
 ---
 title: "LUKS Encrypted Container"
 date: 2025-10-05T15:30:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["luks", "encryption", "portable", "usb", "quick-tip"]
@@ -143,14 +144,14 @@ dd if=/dev/urandom of=BackupCrypt.img bs=1M count=10240 status=progress
 
 **When to use:**
 - `fallocate`: Fast, good for most cases
-- `dd` with `/dev/zero`: Secure, prevents data recovery
+- `dd` with `/dev/zero`: Overwrites whatever the newly allocated blocks held before (it does not wipe the rest of the disk)
 - `dd` with `/dev/urandom`: Maximum security, very slow
 </details>
 
 <details>
 <summary><strong>Add multiple passwords (key slots)</strong></summary>
 
-LUKS supports up to 8 passwords:
+LUKS supports multiple passwords: up to 32 key slots on LUKS2 (the cryptsetup default since 2.1), 8 on LUKS1:
 
 ```bash
 # Add a second password
@@ -167,13 +168,14 @@ sudo cryptsetup luksDump BackupCrypt.img
 <details>
 <summary><strong>Auto-mount with /etc/fstab</strong></summary>
 
-For permanent mounting (not recommended for portable containers):
+For permanent mounting (not recommended for portable containers). The fstab line alone is not enough: `/dev/mapper/backup_crypt` exists only after the container is opened (manually, or through an `/etc/crypttab` entry):
 
 ```bash
 # Add to /etc/fstab
 /dev/mapper/backup_crypt  /mnt/encrypted  ext4  defaults,noauto  0  0
 
-# Then mount with
+# fstab only knows the mapper device: open the container first, then mount
+sudo cryptsetup open BackupCrypt.img backup_crypt
 sudo mount /mnt/encrypted
 ```
 </details>
@@ -327,8 +329,8 @@ df -h /mnt/encrypted
 ```
 
 **With fallocate:**
-- File size: 10G (sparse file)
-- Disk usage: Usually smaller until filled
+- File size: 10G (blocks preallocated, not a sparse file)
+- Disk usage: 10G immediately (only `truncate -s` would create a sparse file)
 - Fast creation
 
 **With dd:**
@@ -378,7 +380,7 @@ sudo cryptsetup close backup_crypt
 # Verify LUKS header is intact
 sudo cryptsetup luksDump BackupCrypt.img
 
-# Try all key slots (0-7)
+# Try each key slot in use (luksDump lists them: 0-7 on LUKS1, up to 31 on LUKS2)
 sudo cryptsetup open BackupCrypt.img backup_crypt --key-slot 0
 sudo cryptsetup open BackupCrypt.img backup_crypt --key-slot 1
 # ... etc

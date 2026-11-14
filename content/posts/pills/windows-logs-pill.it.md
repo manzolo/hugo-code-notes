@@ -2,7 +2,7 @@
 title: "Leggere i log di Windows: dal codice di errore alla causa"
 url: "2026/09/reading-windows-logs-from-error-code-to-root-cause/"
 date: 2026-09-18T11:00:00+02:00
-lastmod: 2026-09-18T11:00:00+02:00
+lastmod: 2026-11-14T21:00:00+01:00
 draft: true
 author: "Manzolo"
 tags: ["windows", "logs", "troubleshooting", "dism", "sfc", "quick-tip"]
@@ -71,9 +71,8 @@ certutil -error 0xc0000242
 ```
 
 ```text
-0xc0000242 (NTSTATUS: 3221226050) -- 3221226050 (-1073741246)
-Error message text: {Bad Compression Buffer}
-The specified buffer contains ill-formed data.
+0xc0000242 (NT: 0xc0000242 STATUS_BAD_COMPRESSION_BUFFER) -- 3221226050 (-1073741246)
+Error message text: The specified buffer contains ill-formed data.
 ```
 
 *(output abbreviato - `certutil` stampa anche una riga finale di esito positivo)*
@@ -133,7 +132,7 @@ dispositivo o con la memoria. Questi sono quelli da conoscere:
 
 ### Err.exe, per quando vuoi tutte le risposte insieme
 
-**Err.exe** di Microsoft (lo strumento «Error Code Look-up») è un singolo eseguibile
+**Err.exe** di Microsoft (lo strumento «Error Code Look-up», da scaricare gratis dal sito Microsoft: non fa parte di Windows) è un singolo eseguibile
 portabile che cerca un valore in tutti i file header di Windows e mostra *tutti* i nomi
 simbolici a cui corrisponde, in ogni famiglia:
 
@@ -299,6 +298,8 @@ wevtutil epl System "%userprofile%\Desktop\system.evtx"
 :: Reliability Monitor - a chronological, human view of what broke and when
 perfmon /rel
 ```
+
+![Monitoraggio affidabilità: indice di stabilità e gli eventi di ogni giorno](/images/win-reliability-monitor.png "perfmon /rel su Windows 11: una colonna per giorno, sotto i dettagli del giorno selezionato")
 
 `perfmon /rel` merita più affetto di quanto ne riceva: è il modo più veloce per rispondere
 a *«è cominciato in un giorno preciso?»*, e un grappolo di errori che compare nella stessa

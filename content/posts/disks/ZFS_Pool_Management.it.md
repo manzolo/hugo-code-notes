@@ -2,7 +2,7 @@
 title: "Guida alla gestione dei pool ZFS (Debian/Ubuntu)"
 url: "2025/10/zfs-pool-management-guide-debian/ubuntu/"
 date: 2025-10-03T10:00:00+02:00
-lastmod: 2025-10-04T11:35:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["zfs", "storage", "pool-management", "snapshots", "raid"]
@@ -823,7 +823,7 @@ sudo zpool set cachefile=/etc/zfs/zpool.cache tank
 0 0 * * * /sbin/zfs snapshot tank/data@daily-$(date +\%Y\%m\%d)
 
 # Keep only last 7 days
-0 1 * * * /sbin/zfs list -t snapshot -o name | grep daily | head -n -7 | xargs -n 1 /sbin/zfs destroy
+0 1 * * * /sbin/zfs list -H -t snapshot -o name -s creation -d 1 tank/data | grep @daily- | head -n -7 | xargs -n 1 /sbin/zfs destroy
 ```
 </details>
 

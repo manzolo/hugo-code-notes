@@ -1,6 +1,7 @@
 ---
 title: "APT Package Repository Management Guide"
 date: 2025-10-05T17:30:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["apt", "repository", "sources", "gpg", "configuration"]
@@ -38,7 +39,7 @@ Package repositories are servers that host software packages for installation vi
 | Type | Description | Example |
 |------|-------------|---------|
 | **Official** | Ubuntu/Debian main repositories | `archive.ubuntu.com` |
-| **PPA** | Personal Package Archives (Ubuntu) | `ppa.launchpad.net/user/repo` |
+| **PPA** | Personal Package Archives (Ubuntu) | `ppa.launchpadcontent.net/user/repo` |
 | **Third-party** | External repositories | `download.docker.com` |
 | **Local** | Locally installed packages | `/var/lib/dpkg/status` |
 
@@ -64,18 +65,17 @@ sed 's/\s\[.*\]$//'
 
 ```bash
 dpkg --get-selections | awk '!/deinstall$/ {print $1}' | \
-xargs -I{} apt-cache policy {} | \
-perl -0777 -ne 'while(/^(\S+?):\n.*?\n\s+\*\*\*.*?500 http:\/\/ppa\.launchpad\.net\/([^\s\/]+)/gms) {print "$1: $2\n"}'
+xargs apt-cache policy 2>/dev/null | \
+awk '/^[^ ]/ {pkg = $1} /^ \*\*\*/ {getline; if ($2 ~ /ppa\.launchpad(content)?\.net/) {split($2, u, "/"); print pkg " " u[4]}}'
 ```
 
 ### Count Packages per Repository
 
 ```bash
 dpkg --get-selections | awk '!/deinstall$/ {print $1}' | \
-xargs -I{} apt-cache policy {} 2>/dev/null | \
-perl -0777 -ne 'while(/^(\S+?):\n.*?\n\s+\*\*\*.*?500\s+(http:\/\/[^\s]+)/gms) {
-    $repo = $2; $repo =~ s/\s.*//; $repos{$repo}++
-} END { for $r (sort keys %repos) { print "$r: $repos{$r} packages\n" } }'
+xargs apt-cache policy 2>/dev/null | \
+awk '/^ \*\*\*/ {getline; if ($2 ~ /^https?:/) n[$2]++}
+     END { for (r in n) print r ": " n[r] " packages" }' | sort
 ```
 
 ## 📦 Complete Package Audit Script
@@ -155,13 +155,13 @@ get_package_info() {
             
             if [[ -n "$policy_output" ]]; then
                 # Extract main repository
-                local repo=$(echo "$policy_output" | grep -E '^\s+\*\*\*|^\s+[0-9]+' | head -1 | \
-                           perl -ne 'if (/^\s+(?:\*\*\*\s+)?[0-9]+\s+(.*)/) { 
+                local repo=$(echo "$policy_output" | grep -A1 -E '^\s+\*\*\*' | tail -1 | \
+                           perl -ne 'if (/^\s+[0-9]+\s+(.*)/) { 
                                $repo = $1; 
                                $repo =~ s/\s+\[.*?\]$//;  # remove architecture
-                               if ($repo =~ /http:\/\/ppa\.launchpad\.net\/([^\/\s]+\/[^\/\s]+)/) {
+                               if ($repo =~ /https?:\/\/ppa\.launchpad(?:content)?\.net\/([^\/\s]+\/[^\/\s]+)/) {
                                    print "PPA: $1\n";
-                               } elsif ($repo =~ /http:\/\/([^\/\s]+)/) {
+                               } elsif ($repo =~ /https?:\/\/([^\/\s]+)/) {
                                    print "Repository: $1\n";
                                } elsif ($repo =~ /\/var\/lib\/dpkg\/status/) {
                                    print "Local\n";
@@ -213,10 +213,10 @@ get_package_info() {
             echo "  Packages per Repository"
             echo "================================================"
             echo ""
-            printf "%-60s %s\n" "Repository" "Count"
+            printf "%-60s\t%s\n" "Repository" "Count"
             echo "------------------------------------------------"
             for repo in "${!repo_counts[@]}"; do
-                printf "%-60s %s\n" "$repo" "${repo_counts[$repo]}"
+                printf "%-60s\t%s\n" "$repo" "${repo_counts[$repo]}"
             done | sort -t$'\t' -k2 -nr
             echo ""
             echo "Total repositories: ${#repo_counts[@]}"
@@ -377,7 +377,7 @@ apt-cache policy package-name
 #   Candidate: 1.2.3-1
 #   Version table:
 #  *** 1.2.3-1 500
-#         500 http://ppa.launchpad.net/user/repo/ubuntu focal/main amd64 Packages
+#         500 https://ppa.launchpadcontent.net/user/repo/ubuntu noble/main amd64 Packages
 #         100 /var/lib/dpkg/status
 ```
 
@@ -409,14 +409,14 @@ echo ""
 
 # Count by type
 echo "By Type:"
-./package-audit.sh -c | grep -E "^(PPA|Repository|Local)" | \
-    awk -F: '{type=$1; count=$2; types[type]+=count} END {
+./package-audit.sh -c | grep -E $'\t[0-9]+$' | \
+    awk -F'\t' '{split($1, a, /[: ]/); types[a[1]] += $2} END {
         for (t in types) print t": "types[t]
     }' | sort -t: -k2 -nr
 
 echo ""
 echo "Top 10 Repositories:"
-./package-audit.sh -c | head -12 | tail -10
+./package-audit.sh -c | grep -E $'\t[0-9]+$' | head -10
 ```
 </details>
 
@@ -457,11 +457,11 @@ comm -3 <(sort system1.csv) <(sort system2.csv)
 ### List Active Repositories
 
 ```bash
-# List all configured repositories
-grep -r --include '*.list' '^deb ' /etc/apt/sources.list /etc/apt/sources.list.d/
+# List all configured repositories (one-line .list and deb822 .sources files)
+grep -rE --include '*.list' --include '*.sources' '^(deb |URIs:|Suites:)' /etc/apt/sources.list /etc/apt/sources.list.d/
 
 # List only PPAs
-grep -r --include '*.list' '^deb ' /etc/apt/sources.list.d/ | grep ppa.launchpad.net
+grep -rE --include '*.list' --include '*.sources' '^(deb |URIs:)' /etc/apt/sources.list.d/ | grep -E 'ppa\.launchpad(content)?\.net'
 
 # Show repository keys (apt-key is deprecated: keys are plain files now)
 ls -l /etc/apt/trusted.gpg.d/ /etc/apt/keyrings/ /usr/share/keyrings/ 2>/dev/null
@@ -499,16 +499,16 @@ sudo apt update
 echo "Checking for unused PPAs..."
 
 # Get list of PPAs
-ppas=$(grep -r --include '*.list' '^deb ' /etc/apt/sources.list.d/ | \
-       grep ppa.launchpad.net | \
-       sed 's/.*ppa\.launchpad\.net\/\([^\/]*\/[^\/]*\).*/\1/' | \
+ppas=$(grep -rhE --include '*.list' --include '*.sources' '^(deb |URIs:)' /etc/apt/sources.list.d/ | \
+       grep -oE 'ppa\.launchpad(content)?\.net/[^/ ]+/[^/ ]+' | \
+       sed -E 's#ppa\.launchpad(content)?\.net/##' | \
        sort -u)
 
 # Check each PPA
 while IFS= read -r ppa; do
     count=$(dpkg --get-selections | awk '!/deinstall$/ {print $1}' | \
             xargs -I{} apt-cache policy {} 2>/dev/null | \
-            grep -c "ppa.launchpad.net/$ppa")
+            grep -cE "ppa\.launchpad(content)?\.net/$ppa/")
     
     if [ "$count" -eq 0 ]; then
         echo "Unused PPA: $ppa (0 packages)"
@@ -530,11 +530,9 @@ done <<< "$ppas"
                       grep -v "Repository: security.ubuntu.com" | \
                       grep -v "Local"
 
-# Check for packages without GPG verification
-dpkg --get-selections | awk '!/deinstall$/ {print $1}' | \
-while read pkg; do
-    apt-cache policy "$pkg" | grep -q "\[trusted=yes\]" && echo "$pkg (unverified)"
-done
+# Check for repositories without GPG verification
+# (apt-cache policy does not show this, so look at the source files)
+grep -rEi 'trusted=yes|^Trusted: *yes' /etc/apt/sources.list /etc/apt/sources.list.d/ 2>/dev/null
 ```
 
 ### Audit Third-party Packages
@@ -576,7 +574,7 @@ echo ""
 
 echo "4. Unsigned Repositories:"
 echo "------------------------"
-grep -r "trusted=yes" /etc/apt/sources.list /etc/apt/sources.list.d/ 2>/dev/null
+grep -rEi 'trusted=yes|^Trusted: *yes' /etc/apt/sources.list /etc/apt/sources.list.d/ 2>/dev/null
 echo ""
 
 echo "5. Outdated Package Keys:"
@@ -764,7 +762,7 @@ $(./package-audit.sh -p)
 ## Repository Configuration
 
 \`\`\`
-$(grep -r --include '*.list' '^deb ' /etc/apt/sources.list /etc/apt/sources.list.d/)
+$(grep -rE --include '*.list' --include '*.sources' '^(deb |URIs:|Suites:)' /etc/apt/sources.list /etc/apt/sources.list.d/)
 \`\`\`
 
 ## System Information
@@ -812,12 +810,12 @@ echo "Documentation generated: system-documentation.md"
 4. **Security First**: Audit third-party sources regularly
 5. **Backup Lists**: Maintain package backups before major changes
 6. **Clean Regularly**: Remove unused repositories
-7. **Version Pin**: Pin critical packages to specific versions
+7. **Hold Versions**: Hold critical packages at a known version (for real pinning, use `/etc/apt/preferences.d/`)
 
-### Version Pinning Example
+### Version Hold Example
 
 ```bash
-# Pin package to specific version
+# Hold package at the installed version (not real pinning: see /etc/apt/preferences)
 sudo apt-mark hold package-name
 
 # Show held packages
@@ -838,7 +836,7 @@ sudo apt clean
 # Remove orphaned packages
 sudo apt autoremove
 
-# Remove unnecessary dependencies
+# Remove cached .deb files that can no longer be downloaded
 sudo apt-get autoclean
 ```
 

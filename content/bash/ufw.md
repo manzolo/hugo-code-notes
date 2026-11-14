@@ -208,7 +208,7 @@ sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 
 echo "Enabling UFW..."
-sudo ufw enable
+sudo ufw --force enable   # no interactive prompt over SSH
 
 echo "Current UFW status:"
 sudo ufw status

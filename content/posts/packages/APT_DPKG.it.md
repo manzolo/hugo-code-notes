@@ -2,7 +2,7 @@
 title: "Guida ad APT e DPKG (Debian/Ubuntu)"
 url: "2025/10/apt-and-dpkg-guide-debian/ubuntu/"
 date: 2025-10-04T12:00:00+02:00
-lastmod: 2025-10-04T12:50:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["apt", "dpkg", "debian", "ubuntu", "package-management"]
@@ -33,7 +33,7 @@ Insieme offrono una gestione dei pacchetti solida per i sistemi Debian/Ubuntu.
 
 ## Prerequisiti
 
-- **Debian/Ubuntu**: versione 20.04+.
+- **Debian/Ubuntu**: Debian 11+ o Ubuntu 20.04+.
 - **Accesso root**: usa `sudo` per la maggior parte dei comandi.
 - **Accesso a Internet**: necessario per `apt update` e per le operazioni sui repository.
 - **Strumenti**: `apt`, `dpkg` e `gnupg` sono preinstallati su Debian/Ubuntu.
@@ -81,7 +81,7 @@ Esempio (aggiungere il repository di Docker):
 curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
 # Add Docker repository
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bullseye stable" | sudo tee /etc/apt/sources.list.d/docker.list
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list
 
 # Update package lists
 sudo apt update
@@ -91,6 +91,8 @@ Verifica:
 ```bash
 cat /etc/apt/sources.list.d/docker.list
 ```
+
+**Nota**: la parte `$(. /etc/os-release && echo "$VERSION_CODENAME")` inserisce il nome in codice della tua release (ad esempio `bookworm`), così la riga corrisponde al tuo sistema. Questi esempi usano il repository Debian di Docker; su Ubuntu sostituisci `debian` con `ubuntu` in entrambi gli URL.
 
 **Nota**: verifica sempre la chiave GPG e l'URL del repository, per non correre rischi di sicurezza.
 
@@ -303,7 +305,7 @@ Aggiungi il repository di Docker:
 curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
 # Add repository
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bullseye stable" | sudo tee /etc/apt/sources.list.d/docker.list
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list
 
 # Update package lists
 sudo apt update
@@ -440,7 +442,7 @@ Aggiungi un repository per installare un software specifico (ad esempio Docker):
 curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
 # Add repository
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bullseye stable" | sudo tee /etc/apt/sources.list.d/docker.list
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list
 
 # Update and install
 sudo apt update

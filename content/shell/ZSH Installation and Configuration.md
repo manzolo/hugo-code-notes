@@ -1,7 +1,7 @@
 ---
 title: "ZSH Installation and Configuration Guide (Debian/Ubuntu)"
 date: 2025-10-04T00:22:00+02:00
-lastmod: 2025-10-04T00:22:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["zsh", "shell", "oh-my-zsh", "terminal", "configuration"]
@@ -64,7 +64,7 @@ Install ZSH and supporting packages for a customized setup.
 
 ```bash
 sudo apt update
-sudo apt install -y zsh powerline fonts-powerline
+sudo apt install -y zsh git curl powerline fonts-powerline
 ```
 
 ### 2. Install Oh My Zsh
@@ -146,7 +146,7 @@ Run the following script to automate the entire process:
 #!/bin/bash
 echo "Installing ZSH..."
 sudo apt update -qqy > /dev/null
-sudo apt install -qqy zsh powerline fonts-powerline > /dev/null
+sudo apt install -qqy zsh git curl powerline fonts-powerline > /dev/null
 git clone --quiet --depth=1 https://github.com/ohmyzsh/ohmyzsh.git ~/.oh-my-zsh > /dev/null
 git -C ~/.oh-my-zsh/custom/plugins clone --quiet --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git > /dev/null
 git -C ~/.oh-my-zsh/custom/plugins clone --quiet --depth=1 https://github.com/zsh-users/zsh-autosuggestions.git > /dev/null

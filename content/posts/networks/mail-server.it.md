@@ -2,7 +2,7 @@
 title: "Mail server: guida all'installazione e alla configurazione (Debian/Ubuntu)"
 url: "2025/10/mail-server-installation-and-configuration-guide-debian/ubuntu/"
 date: 2025-10-04T11:00:00+02:00
-lastmod: 2025-10-04T11:00:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["mail-server", "postfix", "dovecot", "email", "configuration"]
@@ -117,7 +117,7 @@ Le impostazioni principali:
 myhostname = mail.example.com
 mydomain = example.com
 myorigin = $mydomain
-mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+mydestination = $myhostname, localhost.$mydomain, localhost
 relayhost =
 mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
 mailbox_size_limit = 0
@@ -137,7 +137,6 @@ virtual_alias_maps = hash:/etc/postfix/virtual_aliases
 # TLS settings
 smtpd_tls_cert_file=/etc/letsencrypt/live/mail.example.com/fullchain.pem
 smtpd_tls_key_file=/etc/letsencrypt/live/mail.example.com/privkey.pem
-smtpd_use_tls=yes
 smtpd_tls_auth_only = yes
 smtpd_tls_security_level = may
 smtp_tls_security_level = may
@@ -164,6 +163,8 @@ smtpd_recipient_restrictions =
     reject_unknown_sender_domain,
     reject_unknown_recipient_domain
 ```
+
+`$mydomain` resta fuori da `mydestination` di proposito: `example.com` è servito come dominio virtuale, e un dominio elencato sia in `mydestination` sia in `virtual_mailbox_domains` viene consegnato agli utenti Unix locali invece che alle caselle virtuali (Postfix scrive nel log "do not list domain example.com in BOTH mydestination and virtual_mailbox_domains").
 
 Configura la porta di submission (587):
 ```bash
@@ -264,6 +265,10 @@ sudo systemctl enable postfix
 ```
 
 ### 5. Installare Dovecot (server IMAP/POP3)
+
+{{< callout type="info" >}}
+La configurazione di Dovecot che segue è scritta per **Dovecot 2.3** (Debian 12, Ubuntu 22.04/24.04). Dovecot 2.4, quello di Debian 13, ha cambiato la sintassi (per esempio `mail_location`, `ssl_cert = <...` e `disable_plaintext_auth` non esistono più): trovi i dettagli nelle [note ufficiali per passare dalla 2.3 alla 2.4](https://doc.dovecot.org/latest/installation/upgrade/2.3-to-2.4.html).
+{{< /callout >}}
 
 Installa Dovecot:
 ```bash
@@ -367,7 +372,7 @@ Aggiungi o modifica il servizio auth:
 ```
 service auth {
   unix_listener /var/spool/postfix/private/auth {
-    mode = 0666
+    mode = 0660
     user = postfix
     group = postfix
   }
@@ -549,7 +554,7 @@ sudo nano /etc/postfix/main.cf
 Aggiungi:
 ```
 milter_default_action = accept
-milter_protocol = 2
+milter_protocol = 6
 smtpd_milters = inet:localhost:8891
 non_smtpd_milters = inet:localhost:8891
 ```
@@ -608,6 +613,7 @@ doveadm quota get -u user1@example.com
 
 Invia un'email di prova:
 ```bash
+sudo apt install mailutils  # provides the mail command
 echo "Test email body" | mail -s "Test Subject" -r user1@example.com user2@example.com
 ```
 
@@ -639,7 +645,7 @@ sudo systemctl restart postfix dovecot
 ```bash
 sudo systemctl status postfix
 sudo systemctl status dovecot
-sudo netstat -tulpn | grep -E ':(25|587|993|995)'
+sudo ss -tulpn | grep -E ':(25|587|993|995)'
 ```
 
 **Output**:
@@ -647,10 +653,10 @@ sudo netstat -tulpn | grep -E ':(25|587|993|995)'
 ● postfix.service - Postfix Mail Transport Agent
      Active: active (running) since Sat 2025-10-04 14:00:00 UTC
 
-tcp        0      0 0.0.0.0:25              0.0.0.0:*               LISTEN      1234/master
-tcp        0      0 0.0.0.0:587             0.0.0.0:*               LISTEN      1234/master
-tcp        0      0 0.0.0.0:993             0.0.0.0:*               LISTEN      5678/dovecot
-tcp        0      0 0.0.0.0:995             0.0.0.0:*               LISTEN      5678/dovecot
+tcp   LISTEN 0      100          0.0.0.0:25        0.0.0.0:*    users:(("master",pid=1234,fd=13))
+tcp   LISTEN 0      100          0.0.0.0:587       0.0.0.0:*    users:(("master",pid=1234,fd=17))
+tcp   LISTEN 0      100          0.0.0.0:993       0.0.0.0:*    users:(("dovecot",pid=5678,fd=38))
+tcp   LISTEN 0      100          0.0.0.0:995       0.0.0.0:*    users:(("dovecot",pid=5678,fd=40))
 ```
 
 ### Esempio 4: provare invio e ricezione
@@ -751,15 +757,15 @@ Configura Apache/Nginx perché serva Roundcube e accedi dal browser.
 Installa SpamAssassin:
 ```bash
 sudo apt install spamassassin spamc
-sudo systemctl enable spamassassin
-sudo systemctl start spamassassin
+sudo systemctl enable spamd    # called spamassassin on older releases
+sudo systemctl start spamd
 ```
 
 Configura Postfix perché usi SpamAssassin:
 ```bash
 sudo nano /etc/postfix/master.cf
 ```
-Aggiungi:
+Sostituisci la riga `smtp inet` che c'è già con quella qui sotto (non aggiungerne una seconda) e aggiungi il servizio `spamassassin`:
 ```
 smtp      inet  n       -       y       -       -       smtpd
   -o content_filter=spamassassin
@@ -771,13 +777,13 @@ spamassassin unix -     n       n       -       -       pipe
 ## I comandi, uno per uno
 
 - **postfix**: MTA (Mail Transfer Agent) per inviare e ricevere le email
-- **dovecot**: MDA (Mail Delivery Agent) per l'accesso IMAP/POP3
+- **dovecot**: server IMAP/POP3 che dà ai client l'accesso alle caselle (qui la consegna la fa Postfix)
 - **postmap**: genera il database hash a partire dai file di testo
 - **doveadm**: lo strumento di amministrazione di Dovecot, per la gestione degli utenti
 - **certbot**: ottiene e rinnova i certificati SSL
 - **opendkim**: implementa l'autenticazione DKIM delle email
 - **mailq**: mostra lo stato della coda della posta
-- **mail**: utility per inviare email da riga di comando
+- **mail**: utility per inviare email da riga di comando (pacchetto `mailutils`)
 
 ## Casi d'uso
 
@@ -811,7 +817,7 @@ spamassassin unix -     n       n       -       -       pipe
 **Non riesci a ricevere email**:
 - Verifica che i record MX e A puntino dove devono
 - Controlla se la porta 25 è bloccata dal provider
-- Verifica che Postfix sia in ascolto: `sudo netstat -tulpn | grep :25`
+- Verifica che Postfix sia in ascolto: `sudo ss -tulpn | grep :25`
 - Controlla le restrizioni di relay in `/etc/postfix/main.cf`
 
 **L'autenticazione fallisce**:
@@ -840,7 +846,7 @@ spamassassin unix -     n       n       -       -       pipe
 
 **Carico elevato o problemi di prestazioni**:
 - Controlla se ci sono attacchi di spam: `sudo mailq | wc -l`
-- Tieni d'occhio le connessioni: `sudo netstat -an | grep :25 | wc -l`
+- Tieni d'occhio le connessioni: `sudo ss -tan | grep :25 | wc -l`
 - Esamina la coda di Postfix: `sudo postqueue -p`
 - Svuota la coda se serve: `sudo postsuper -d ALL`
 

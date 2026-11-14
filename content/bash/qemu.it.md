@@ -35,13 +35,13 @@ Installa QEMU su Ubuntu/Debian:
 
 ```bash
 sudo apt update
-sudo apt install qemu qemu-system qemu-utils
+sudo apt install qemu-system-x86 qemu-utils
 ```
 
 Per l'accelerazione KVM (consigliata per avere prestazioni migliori):
 
 ```bash
-sudo apt install qemu-kvm
+sudo apt install cpu-checker   # provides kvm-ok; KVM itself comes with qemu-system-x86
 ```
 
 Verifica il supporto a KVM:
@@ -274,7 +274,7 @@ qemu-system-x86_64 -enable-kvm -m 2G -hda disk.qcow2
 ## Risoluzione dei problemi
 
 - **KVM non funziona**: controlla che i moduli KVM siano caricati (`lsmod | grep kvm`) e che il tuo utente sia nel gruppo `kvm` (`sudo usermod -aG kvm $USER`).
-- **Errori nell'immagine disco**: usa `qemu-img check` per diagnosticare e riparare i problemi.
+- **Errori nell'immagine disco**: `qemu-img check` fa solo la diagnosi; per riparare aggiungi `-r leaks` o `-r all` (a VM spenta, e dopo aver fatto una copia dell'immagine).
 - **La VM non si avvia**: verifica l'immagine disco, la ISO o l'ordine di boot (`-boot`).
 - **Problemi di rete**: controlla la configurazione di rete con `ip addr` e verifica che le impostazioni di `-netdev` siano corrette.
 

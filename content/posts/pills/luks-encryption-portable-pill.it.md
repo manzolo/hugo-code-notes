@@ -2,6 +2,7 @@
 title: "Container cifrato con LUKS"
 url: "2025/10/luks-encrypted-container/"
 date: 2025-10-05T15:30:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["luks", "encryption", "portable", "usb", "quick-tip"]
@@ -144,14 +145,14 @@ dd if=/dev/urandom of=BackupCrypt.img bs=1M count=10240 status=progress
 
 **Quando usarli:**
 - `fallocate`: veloce, va bene nella maggior parte dei casi
-- `dd` con `/dev/zero`: sicuro, impedisce il recupero dei dati
+- `dd` con `/dev/zero`: sovrascrive quello che c'era prima nei blocchi appena assegnati al file (non cancella il resto del disco)
 - `dd` con `/dev/urandom`: massima sicurezza, molto lento
 </details>
 
 <details>
 <summary><strong>Aggiungere più password (key slot)</strong></summary>
 
-LUKS supporta fino a 8 password:
+LUKS supporta più password: fino a 32 key slot con LUKS2 (il formato predefinito di cryptsetup dalla 2.1), 8 con LUKS1:
 
 ```bash
 # Add a second password
@@ -168,13 +169,14 @@ sudo cryptsetup luksDump BackupCrypt.img
 <details>
 <summary><strong>Mount automatico con /etc/fstab</strong></summary>
 
-Per un mount permanente (sconsigliato per i container portatili):
+Per un mount permanente (sconsigliato per i container portatili). La sola riga in fstab non basta: `/dev/mapper/backup_crypt` esiste solo dopo che hai aperto il container (a mano, oppure con una voce in `/etc/crypttab`):
 
 ```bash
 # Add to /etc/fstab
 /dev/mapper/backup_crypt  /mnt/encrypted  ext4  defaults,noauto  0  0
 
-# Then mount with
+# fstab only knows the mapper device: open the container first, then mount
+sudo cryptsetup open BackupCrypt.img backup_crypt
 sudo mount /mnt/encrypted
 ```
 </details>
@@ -328,8 +330,8 @@ df -h /mnt/encrypted
 ```
 
 **Con fallocate:**
-- Dimensione del file: 10G (file sparse)
-- Spazio occupato su disco: di solito inferiore, finché non lo riempi
+- Dimensione del file: 10G (blocchi preallocati, non è un file sparse)
+- Spazio occupato su disco: 10G da subito (un file sparse lo crea solo `truncate -s`)
 - Creazione veloce
 
 **Con dd:**
@@ -379,7 +381,7 @@ sudo cryptsetup close backup_crypt
 # Verify LUKS header is intact
 sudo cryptsetup luksDump BackupCrypt.img
 
-# Try all key slots (0-7)
+# Try each key slot in use (luksDump lists them: 0-7 on LUKS1, up to 31 on LUKS2)
 sudo cryptsetup open BackupCrypt.img backup_crypt --key-slot 0
 sudo cryptsetup open BackupCrypt.img backup_crypt --key-slot 1
 # ... etc

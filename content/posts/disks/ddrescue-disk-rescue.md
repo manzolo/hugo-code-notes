@@ -1,7 +1,7 @@
 ---
 title: "Rescuing a Failing Disk with ddrescue"
 date: 2026-09-18T13:00:00+02:00
-lastmod: 2026-09-18T13:00:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["disks", "recovery", "ddrescue", "linux", "smart"]
@@ -519,8 +519,6 @@ sudo losetup -fP --show disk.img       # /dev/loop0
 The disk goes in a drawer now. Everything from here happens on the copy.
 
 ## 🧪 Now repair the image
-
-The disk goes in a drawer. Everything from here happens on the copy.
 
 ```bash
 # Attach the image with its partition table

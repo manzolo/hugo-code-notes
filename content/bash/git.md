@@ -2,7 +2,7 @@
 title: "Git"
 #description: ""
 date: 2025-09-26T10:00:00+01:00
-lastmod: 2025-09-26T10:00:00+01:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["git", "version-control", "commands", "github", "reference"]
@@ -30,7 +30,7 @@ Git tracks changes to files, allowing multiple users to work on the same project
 
 ## What is Gitflow?
 
-Gitflow is a branching strategy that defines specific branches for development, features, releases, and hotfixes. It ensures a structured workflow, especially for teams working on long-term projects with multiple releases.
+Gitflow is a branching strategy that defines specific branches for development, features, releases, and hotfixes. It ensures a structured workflow, especially for teams working on long-term projects with multiple releases. Its author himself notes (2020) that for software delivered continuously, such as web apps, a simpler workflow like GitHub Flow is a better fit.
 
 ## Prerequisites
 
@@ -313,7 +313,7 @@ chmod +x manage_gitflow.sh
 
 - **Merge Conflicts**: Edit conflicting files, mark them as resolved (`git add`), and continue the merge or rebase.
 - **Remote Push Errors**: Ensure you have the latest changes (`git pull --rebase`) before pushing.
-- **Lost Commits**: Use `git reflog` to find lost commit hashes and recover them with `git checkout commit_hash`.
+- **Lost Commits**: Use `git reflog` to find lost commit hashes and recover them with `git branch recovered-work commit_hash` (a plain `git checkout commit_hash` only leaves you in detached HEAD).
 - **Gitflow Not Found**: Install `git-flow` or use standard Git commands to mimic the workflow.
 
 ## Next Steps
@@ -329,7 +329,7 @@ In future tutorials, we’ll cover:
 1. **Feature Development**: Create a feature branch, add a file, and merge it into `develop` using Gitflow.
 2. **Release Process**: Simulate a release with a version tag and push it to a remote repository.
 3. **Hotfix**: Create a hotfix branch, apply a fix, and merge it into `main` and `develop`.
-4. **History Analysis**: Use `git log` and `git blame` to analyze changes in a file.
+4. **History Analysis**: Use `git log` and `git blame` (who last changed each line) to analyze changes in a file.
 
 ## Resources
 

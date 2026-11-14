@@ -41,11 +41,11 @@ sudo apt update
 
 ## Installa i miei pacchetti
 
-# Il pacchetto manzolo-chroot
+### Il pacchetto manzolo-chroot
 ```bash
 sudo apt install manzolo-chroot
 ```
-# Cerca tutti i miei strumenti
+### Cerca tutti i miei strumenti
 ```bash
 apt search manzolo
 ```

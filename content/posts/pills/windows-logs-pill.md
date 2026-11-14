@@ -1,7 +1,7 @@
 ---
 title: "Reading Windows Logs: From Error Code to Root Cause"
 date: 2026-09-18T11:00:00+02:00
-lastmod: 2026-09-18T11:00:00+02:00
+lastmod: 2026-11-14T21:00:00+01:00
 draft: true
 author: "Manzolo"
 tags: ["windows", "logs", "troubleshooting", "dism", "sfc", "quick-tip"]
@@ -69,9 +69,8 @@ certutil -error 0xc0000242
 ```
 
 ```text
-0xc0000242 (NTSTATUS: 3221226050) -- 3221226050 (-1073741246)
-Error message text: {Bad Compression Buffer}
-The specified buffer contains ill-formed data.
+0xc0000242 (NT: 0xc0000242 STATUS_BAD_COMPRESSION_BUFFER) -- 3221226050 (-1073741246)
+Error message text: The specified buffer contains ill-formed data.
 ```
 
 *(output abridged - `certutil` also prints a trailing success line)*
@@ -131,7 +130,7 @@ device or to memory. These are the ones worth knowing:
 
 ### Err.exe, for when you want every answer at once
 
-Microsoft's **Err.exe** (the "Error Code Look-up" tool) is a single portable executable
+Microsoft's **Err.exe** (the "Error Code Look-up" tool, a free download from Microsoft: it is not part of Windows) is a single portable executable
 that greps every Windows header file for a value and shows *all* the symbolic names it
 matches, across families:
 
@@ -293,6 +292,8 @@ wevtutil epl System "%userprofile%\Desktop\system.evtx"
 :: Reliability Monitor - a chronological, human view of what broke and when
 perfmon /rel
 ```
+
+![Reliability Monitor: stability index and the events of each day](/images/win-reliability-monitor.png "perfmon /rel on Windows 11 (Italian interface): one column per day, details of the selected day below")
 
 `perfmon /rel` deserves more affection than it gets: it is the fastest way to answer
 *"did this start on a particular day?"*, and a cluster of failures appearing on the same

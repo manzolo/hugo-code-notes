@@ -3,7 +3,7 @@ title: "SPF, DMARC e DKIM: la triade della sicurezza email"
 url: "2026/02/spf-dmarc-and-dkim-the-email-security-triad/"
 description: "Come funzionano SPF, DMARC e DKIM per proteggere le tue email da spam e phishing"
 date: 2026-02-16T10:00:00+02:00
-lastmod: 2026-02-16T10:00:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["email", "security", "spf", "dmarc", "dkim", "spam", "phishing"]
@@ -41,7 +41,7 @@ v=spf1 include:_spf.google.com ~all
 In questo esempio:
 - `v=spf1` indica la versione di SPF
 - `include:_spf.google.com` include i server di Google per l'invio della posta
-- `~all` indica che tutti gli altri permessi non specificati vanno trattati come «soft fail»
+- `~all` indica che la posta inviata da qualunque server non elencato nei meccanismi precedenti va trattata come «soft fail» (accettata ma segnata come sospetta)
 
 ## Che cos'è DKIM (DomainKeys Identified Mail)?
 
@@ -85,8 +85,8 @@ In questo esempio:
 - `v=DMARC1` indica la versione di DMARC
 - `p=quarantine` policy: metti in quarantena le email non autenticate
 - `rua=mailto:reports@yourdomain.com` indirizzo per i report aggregati
-- `ruf=mailto:forensic@yourdomain.com` indirizzo per i report dettagliati
-- `fo=1` segnala le violazioni
+- `ruf=mailto:forensic@yourdomain.com` indirizzo per i report di errore (forensi), uno per ogni messaggio che non passa; molti provider non li mandano mai
+- `fo=1` chiede un report di errore quando fallisce anche uno solo dei controlli (SPF o DKIM), non solo quando falliscono entrambi
 
 ## Implementazione pratica
 
@@ -94,7 +94,7 @@ In questo esempio:
 
 Per implementare correttamente questi protocolli devi configurare i record DNS del tuo dominio:
 
-1. **Record SPF**: aggiungi un record TXT con il dominio SPF
+1. **Record SPF**: aggiungi sul dominio stesso (per esempio `yourdomain.com`) un record TXT che contiene la policy SPF (`v=spf1 ...`)
 2. **Record DKIM**: aggiungi un record TXT per la chiave pubblica DKIM
 3. **Record DMARC**: aggiungi un record TXT per DMARC
 
@@ -134,16 +134,19 @@ Dopo la configurazione è importante mettere alla prova i protocolli:
 ### 1. Falsi positivi
 
 **Problema**: email legittime vengono rifiutate o messe in quarantena
+
 **Soluzione**: verifica la configurazione di SPF e DMARC, aggiungi i server autorizzati
 
 ### 2. Configurazione errata
 
 **Problema**: la configurazione non funziona come dovrebbe
+
 **Soluzione**: usa gli strumenti di test e verifica i record DNS
 
 ### 3. Report mancanti
 
 **Problema**: non arriva nessun report DMARC
+
 **Soluzione**: verifica che l'indirizzo per i report sia corretto e raggiungibile
 
 ## Conclusione

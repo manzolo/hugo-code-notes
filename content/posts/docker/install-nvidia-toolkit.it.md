@@ -3,7 +3,7 @@ title: "Installare NVIDIA Container Toolkit"
 url: "2025/11/installing-nvidia-container-toolkit/"
 description: "Guida all'installazione di NVIDIA Container Toolkit per abilitare il supporto GPU nei container Docker"
 date: 2025-11-04T09:00:00+02:00
-lastmod: 2025-11-04T09:00:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["nvidia", "gpu", "container-toolkit", "installation", "cuda"]
@@ -21,7 +21,7 @@ searchHidden: false
 
 # Installare NVIDIA Container Toolkit
 
-Questa guida spiega come installare NVIDIA Container Toolkit, indispensabile per abilitare l'accelerazione GPU dentro i container Docker. È utile soprattutto per le applicazioni che sfruttano le GPU NVIDIA per attività come il machine learning e il calcolo scientifico con supporto GPU.
+Questa guida spiega come installare NVIDIA Container Toolkit, indispensabile per abilitare l'accelerazione GPU dentro i container Docker. È utile soprattutto per le applicazioni che sfruttano le GPU NVIDIA per attività come il machine learning e il calcolo scientifico.
 
 ## Prerequisiti
 
@@ -79,7 +79,7 @@ Per verificare che NVIDIA Container Toolkit sia installato e configurato corrett
 docker run --rm --gpus all nvidia/cuda:12.9.1-runtime-ubuntu24.04 nvidia-smi
 ```
 
-Se l'installazione è andata a buon fine, dovresti vedere un output simile a quello di `nvidia-smi`, con le informazioni sulla tua GPU.
+Se l'installazione è andata a buon fine, dovresti vedere la tabella di `nvidia-smi` con le informazioni sulla tua GPU, la stessa che ottieni lanciando `nvidia-smi` sull'host.
 
 ## Risoluzione dei problemi
 

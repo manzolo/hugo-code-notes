@@ -268,7 +268,7 @@ chmod +x manage_docker.sh
 ## Risoluzione dei problemi
 
 - **Il container non parte**: controlla i log con `docker logs <container_name>` oppure `docker compose logs`.
-- **Conflitti di porta**: verifica che la porta dell'host (per esempio `8080`) non sia già in uso (`netstat -tuln`).
+- **Conflitti di porta**: verifica che la porta dell'host (per esempio `8080`) non sia già in uso (`ss -tuln`).
 - **Problemi nel pull delle immagini**: verifica la connessione a internet oppure cerca l'immagine su Docker Hub.
 - **Problemi di permessi sui volumi**: assicurati che l'utente dell'host abbia accesso alle cartelle montate.
 

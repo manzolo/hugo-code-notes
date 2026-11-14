@@ -1,6 +1,7 @@
 ---
 title: "Encrypted LVM Disk Resize (LUKS + LVM)"
 date: 2025-10-05T17:00:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["lvm", "luks", "resize", "encryption", "quick-tip"]
@@ -30,6 +31,7 @@ description: "Quick guide to resize QEMU disks with LUKS encryption and LVM part
 - Shutdown VM completely before starting
 - Backup your disk image first
 - This is for LUKS + LVM setup (standard Ubuntu encrypted install)
+- `Ubuntu.vhd` in these examples is a raw image despite its extension (`qemu-img info` shows the real format); for a real VHD use `-f vpc`
 {{< /callout >}}
 
 ### Step-by-Step Guide
@@ -61,7 +63,7 @@ sudo parted /dev/nbd0
 
 **Inside parted:**
 ```
-(parted) print                    # Show current layout
+(parted) print                    # Show current layout (on GPT, answer Fix when asked to fix the GPT)
 (parted) resizepart 3 100%        # Resize partition 3 to fill disk
 (parted) quit
 ```
@@ -276,6 +278,8 @@ echo ""
 
 # Step 7: Resize partition
 echo "[7/15] Resizing partition..."
+# GPT: move the backup header to the new end of the disk, or resizepart fails
+printf "Fix\n" | sudo parted ---pretend-input-tty $NBD_DEVICE print >/dev/null
 sudo parted $NBD_DEVICE resizepart $ENCRYPTED_PART 100%
 
 # Step 8: Reload partition table
@@ -336,7 +340,8 @@ sudo ./resize_encrypted_lvm.sh Ubuntu.vhd 200G 3
 <summary><strong>Resize swap partition too</strong></summary>
 
 ```bash
-# After extending root, you can also resize swap if needed
+# Do this BEFORE extending root with +100%FREE:
+# afterwards the volume group has no free space left
 
 # Deactivate swap
 sudo swapoff /dev/vgubuntu/swap_1
@@ -542,8 +547,9 @@ sudo e2fsck -f -y /dev/mapper/vgubuntu-root
 # If still errors, try:
 sudo e2fsck -f -p /dev/mapper/vgubuntu-root
 
-# Last resort (may lose data):
-sudo e2fsck -f -y -v /dev/mapper/vgubuntu-root
+# Last resort (may lose data): use a backup superblock
+# (list them with: sudo dumpe2fs /dev/mapper/vgubuntu-root | grep -i superblock)
+sudo e2fsck -f -y -b 32768 /dev/mapper/vgubuntu-root
 ```
 </details>
 
@@ -668,10 +674,10 @@ lvextend                           # 5. Logical Volume
 resize2fs                          # 6. Filesystem
 
 # CLEANUP (reverse order)
-lvchange -an                       # 6. Deactivate LVs
-vgchange -an                       # 5. Deactivate VG
-cryptsetup luksClose               # 4. Close LUKS
-qemu-nbd --disconnect              # 3. Disconnect NBD
+lvchange -an                       # 1. Deactivate LVs
+vgchange -an                       # 2. Deactivate VG
+cryptsetup luksClose               # 3. Close LUKS
+qemu-nbd --disconnect              # 4. Disconnect NBD
 ```
 
 ## 🎯 Common Scenarios
@@ -703,13 +709,17 @@ sudo cryptsetup luksOpen /dev/nbd0p5 crypt
 ### Fedora/RHEL Encrypted
 
 ```bash
-# Fedora uses different VG names
+# Fedora Server/RHEL (LVM + XFS) use different VG names
 # Volume Group: fedora (not vgubuntu)
 # Root LV: root
 # Swap LV: swap
+# (Fedora Workstation 33+ uses Btrfs without LVM: this does not apply)
 
 sudo lvextend -l +100%FREE /dev/fedora/root
-sudo xfs_growfs /dev/fedora/root  # Fedora uses XFS
+# XFS can only be grown while mounted
+sudo mount /dev/fedora/root /mnt
+sudo xfs_growfs /mnt
+sudo umount /mnt
 ```
 
 ## 📈 Size Recommendations

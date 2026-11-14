@@ -2,7 +2,7 @@
 title: "Analisi del traffico di rete con Wireshark (Debian/Ubuntu)"
 url: "2025/10/network-traffic-analysis-with-wireshark-debian/ubuntu/"
 date: 2025-10-04T13:25:00+02:00
-lastmod: 2025-10-04T13:25:00+02:00
+lastmod: 2026-11-14T20:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["wireshark", "network-analysis", "packet-capture", "troubleshooting", "security"]
@@ -16,284 +16,200 @@ comments: true
 disableHLJS: false
 disableShare: false
 searchHidden: false
+description: "Cattura largo, guarda stretto: i due linguaggi di filtro, la trappola dei permessi, una connessione rifiutata, l'HTTPS decifrato con il file delle chiavi e una cattura remota che non cattura sé stessa"
 ---
 
 # Analisi del traffico di rete con Wireshark (Debian/Ubuntu)
 
-## Introduzione
-
-Wireshark è un potente strumento open source per catturare e analizzare il traffico di rete, molto usato per il debug dei problemi di rete, il monitoraggio del traffico e l'analisi di sicurezza. Questa guida spiega come installare Wireshark su Debian/Ubuntu, catturare il traffico su un'interfaccia di rete, applicare i filtri e analizzare i pacchetti dei protocolli più comuni, come HTTP e TCP. Contiene esempi pratici per diagnosticare problemi di connettività, ispezionare il traffico web e capire chi consuma banda.
-
-## Che cos'è Wireshark?
-
-Wireshark è un analizzatore di pacchetti: cattura i pacchetti di rete in tempo reale o da file salvati (formato PCAP) e mostra nel dettaglio protocolli, contenuto dei pacchetti e comportamento della rete. Le funzioni principali:
-- **Cattura dei pacchetti**: cattura il traffico su interfacce come `eth0` o `wlan0`.
-- **Filtri**: permette di filtrare i pacchetti per protocollo, IP, porta e così via.
-- **Analisi**: mostra i dettagli dei pacchetti, le statistiche e la gerarchia dei protocolli.
-- **Casi d'uso**: debug dei problemi di rete, monitoraggio delle richieste HTTP, individuazione di traffico sospetto.
-
-## Prerequisiti
-
-- **Debian/Ubuntu**: versione 20.04 o successiva.
-- **Accesso root**: usa `sudo` per l'installazione e la cattura dei pacchetti.
-- **Interfaccia di rete**: un'interfaccia di rete (per esempio `eth0`, `wlan0`) su cui catturare il traffico.
-- **Strumenti**: `wireshark` (GUI, o CLI con `tshark`), `tcpdump` (facoltativo, per confronto).
-- **Accesso a internet**: serve per installare Wireshark.
-
-Verifica le interfacce di rete:
-```bash
-ip link show
-```
-Output di esempio:
-```
-1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 ...
-2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 ...
-3: wlan0: <BROADCAST,MULTICAST> mtu 1500 ...
-```
-
-## Avvertenza importante: sicurezza e permessi
-
-{{< callout type="warning" >}}
-**Attenzione**: catturare il traffico di rete richiede i privilegi di root o l'appartenenza al gruppo di Wireshark, e può esporre dati sensibili (per esempio le password nei protocolli non cifrati). Usa Wireshark in modo responsabile, rispetta la legge ed evita di catturare su reti pubbliche o su cui non sei autorizzato. Fai un backup delle configurazioni critiche prima di procedere.
+{{< callout type="info" >}}
+**A cosa serve**: vedere cosa passa davvero sul filo - quale richiesta manda un programma, perché una connessione fallisce, con chi parla un dispositivo. Tutto quello che segue è stato eseguito il 2026-11-14 con Wireshark 4.2.2 su Ubuntu 24.04: output e schermate vengono da quella macchina.
 {{< /callout >}}
 
-## Come usare Wireshark
+## 🧭 Due linguaggi di filtro, e non sono lo stesso
 
-### 1. Installare Wireshark
-Installa Wireshark con `apt` e configuralo perché anche gli utenti non root possano catturare i pacchetti.
+Wireshark ha due tipi di filtro, e quasi tutta la confusione nasce dal mescolarli:
+
+| | Filtro di cattura | Filtro di visualizzazione |
+|---|---|---|
+| Decide | cosa viene **registrato** | cosa **vedi** di quello che è stato registrato |
+| Linguaggio | BPF, quello di `tcpdump` | quello di Wireshark |
+| Esempio | `tcp port 80` | `tcp.port == 80` |
+| Dove | `tshark -f`, il campo nella schermata iniziale | `tshark -Y`, la barra sopra l'elenco dei pacchetti |
+| Un errore costa | pacchetti persi per sempre | niente: cambi il filtro |
+
+Da qui la regola pratica: **cattura largo, guarda stretto**. Quando non sai bene cosa cerchi, registra di più e filtra la vista.
+
+Si assomigliano, e quindi si scambiano. Un filtro di cattura scritto nella barra di visualizzazione diventa rosso, e la barra di stato spiega perché:
+
+![Un filtro di cattura nella barra dei filtri di visualizzazione: rosso, con un errore nella barra di stato](/images/wireshark-filter-wrong.png "port 80 è BPF: come filtro di visualizzazione non è valido (\"80\" was unexpected in this context)")
+
+![La stessa intenzione come filtro di visualizzazione: verde](/images/wireshark-filter-right.png "tcp.port == 80 è il modo di dirlo con un filtro di visualizzazione")
+
+## 📦 Installazione, e la trappola dei permessi
 
 ```bash
 sudo apt update
-sudo apt install wireshark
+sudo apt install wireshark tshark
+sudo usermod -aG wireshark $USER
 ```
 
-Durante l'installazione ti viene chiesto se permettere agli utenti non root di catturare i pacchetti. Scegli **Yes** per aggiungere gli utenti al gruppo `wireshark`, altrimenti dovrai eseguire Wireshark come root (sconsigliato).
+Rispondi **Sì** quando l'installazione chiede se gli utenti normali devono poter catturare: la cattura la fa allora `dumpcap`, e solo per i membri del gruppo `wireshark`.
 
-Aggiungi il tuo utente (per esempio `manzolo`) al gruppo `wireshark`:
-```bash
-sudo usermod -aG wireshark manzolo
+La trappola è che il gruppo vale solo **dal login successivo**. Nella stessa sessione non cambia niente:
+
+```text
+tshark: Couldn't run dumpcap in child process: Permission denied
+0 packets captured
 ```
 
-Esci e rientra nella sessione per applicare la modifica ai gruppi. Verifica:
-```bash
-groups | grep wireshark
-```
+E il Wireshark grafico, avviato da una sessione del desktop nata prima del gruppo, inganna ancora di più: nessun errore, semplicemente **nessuna interfaccia di rete** nell'elenco, solo le voci di «remote capture»:
 
-Installa `tshark` (la versione CLI) per le catture da terminale:
-```bash
-sudo apt install tshark
-```
+![La schermata iniziale di Wireshark senza interfacce di rete, solo le voci extcap](/images/wireshark-no-interfaces.png "Avviato da una sessione senza il gruppo wireshark: nessuna interfaccia, e nessun messaggio")
 
-### 2. Individuare le interfacce di rete
-Elenca le interfacce di rete disponibili per la cattura:
+Esci e rientra (o riavvia), poi controlla:
+
 ```bash
-ip link show
-```
-Oppure con lo strumento CLI di Wireshark:
-```bash
+id -nG | grep -w wireshark || echo "not yet: log out and back in"
 tshark -D
 ```
-Output di esempio:
-```
-1. eth0
-2. wlan0
-3. lo (Loopback)
-```
 
-**Nota**: usa `eth0` per le connessioni cablate, `wlan0` per il Wi-Fi, oppure `lo` per il traffico locale.
+Se durante l'installazione hai risposto **No**:
 
-### 3. Catturare il traffico di rete
-Avvia la GUI di Wireshark per catturare i pacchetti:
 ```bash
-wireshark &
+sudo dpkg-reconfigure wireshark-common
 ```
 
-1. Nella GUI di Wireshark seleziona un'interfaccia (per esempio `eth0`) e clicca su **Start**.
-2. Il traffico compare in tempo reale: i pacchetti sono mostrati con colonne come Source, Destination, Protocol e Info.
+## 🎯 Catturare
 
-![Wireshark mentre cattura traffico HTTP: elenco dei pacchetti, dettagli del protocollo e byte grezzi](/images/wireshark-capture.png "Wireshark mentre cattura traffico HTTP (filtro di cattura: port 80)")
-
-In alternativa, usa `tshark` per la cattura da CLI:
 ```bash
-tshark -i eth0
-```
-Output di esempio:
-```
-Capturing on 'eth0'
-1 0.000000 192.168.1.100 → 93.184.216.34 TCP 66 12345 → 80 [SYN] Seq=0 Win=64240 Len=0
-2 0.001234 93.184.216.34 → 192.168.1.100 TCP 66 80 → 12345 [SYN, ACK] Seq=0 Ack=1 Win=65535 Len=0
-```
+# Interface names are enp2s0, ens3, wlp3s0... on current systems, rarely eth0
+ip -br link
 
-Ferma la cattura con `Ctrl+C` (CLI) o con il pulsante Stop (GUI).
+# Capture filter (BPF): decides what gets recorded
+tshark -i enp2s0 -f "tcp port 80" -w http.pcapng
 
-### 4. Applicare i filtri
-Wireshark ha i **filtri di cattura** (applicati durante la cattura) e i **filtri di visualizzazione** (applicati ai pacchetti già catturati).
-
-- **Filtro di cattura** (limita i pacchetti catturati, per esempio solo HTTP):
-  ```bash
-  tshark -i eth0 -f "tcp port 80"
-  ```
-  Oppure nella GUI di Wireshark: scrivi `tcp port 80` nel campo del filtro di cattura prima di avviare.
-
-- **Filtro di visualizzazione** (filtra i pacchetti nella GUI):
-  - Nella GUI di Wireshark scrivi un filtro nella barra dei filtri (per esempio `http` per vedere i pacchetti HTTP).
-  - Filtri comuni:
-    - `ip.addr == 192.168.1.100`: i pacchetti da/verso un IP.
-    - `tcp.port == 80`: il traffico TCP sulla porta 80 (HTTP).
-    - `http.request`: solo le richieste HTTP.
-
-Esempio (filtrare le richieste HTTP nella GUI):
-```
-http.request
+# In another terminal, generate some traffic
+curl -s -o /dev/null http://example.com/
 ```
 
-### 5. Analizzare i pacchetti
-Ispeziona i dettagli dei pacchetti in Wireshark:
-- **Packet List**: mostra il riepilogo (Source, Destination, Protocol).
-- **Packet Details**: espandi i protocolli (per esempio TCP, HTTP) per vedere intestazioni e payload.
-- **Packet Bytes**: i dati grezzi del pacchetto, in esadecimale e ASCII.
+`Ctrl+C` ferma `tshark`. Nell'interfaccia grafica lo stesso filtro di cattura va nel campo della schermata iniziale, prima del doppio clic sull'interfaccia. Salva il file (`-w`, oppure File → Salva con nome): una cattura che puoi riaprire vale più di una che hai visto scorrere.
 
-Esempio: per analizzare una richiesta HTTP:
-1. Applica il filtro `http.request`.
-2. Seleziona un pacchetto ed espandi la sezione HTTP per vederne i dettagli (per esempio `GET /index.html HTTP/1.1`).
+## 🔎 Cosa manda davvero il programma?
 
-Salva i pacchetti catturati per analizzarli più tardi:
+Riapri la cattura con un filtro di visualizzazione:
+
 ```bash
-tshark -i eth0 -w capture.pcap
+tshark -r http.pcapng -Y http.request
 ```
-Oppure dalla GUI: File → Save As.
 
-### 6. Monitorare l'uso della banda
-Usa il menu **Statistics** di Wireshark per analizzare la banda:
-- **Protocol Hierarchy**: mostra la distribuzione del traffico per protocollo (Statistics → Protocol Hierarchy).
-- **Conversations**: elenca chi genera più traffico, per IP/porta (Statistics → Conversations).
+```text
+    4 0.014939878 192.168.122.18 → 104.20.23.154 HTTP 140 GET / HTTP/1.1
+```
 
-Esempio (l'equivalente da CLI con `tshark`):
+Nell'interfaccia grafica seleziona quel pacchetto e usa **Analyze → Follow → TCP Stream** (`Ctrl+Alt+Maiusc+T`): Wireshark rimette insieme tutta la conversazione, la richiesta in rosso e la risposta in blu.
+
+![Follow TCP Stream: la richiesta HTTP e la risposta del server](/images/wireshark-follow-stream.png "Follow TCP Stream: cosa ha mandato curl, e cosa è tornato indietro")
+
+## 🚫 Una connessione rifiutata è fatta così
+
 ```bash
-tshark -i eth0 -z conv,ip
+# Capture on loopback, then try a port where nothing listens
+tshark -i lo -f "tcp port 81" -w rst.pcapng
+curl http://localhost:81/        # curl: (7) Failed to connect
+
+tshark -r rst.pcapng
 ```
 
-## Esempi
+```text
+    3 0.000085535    127.0.0.1 → 127.0.0.1    TCP 74 35950 → 81 [SYN] Seq=0 Win=65495 Len=0 ...
+    4 0.000098947    127.0.0.1 → 127.0.0.1    TCP 54 81 → 35950 [RST, ACK] Seq=1 Ack=1 Win=0 Len=0
+```
 
-### Esempio 1: installare e configurare Wireshark
-Installa Wireshark e aggiungi l'utente al gruppo `wireshark`:
+`[SYN]` e poi `[RST, ACK]` dalla destinazione: l'host è raggiungibile e **su quella porta non ascolta niente**. Il filtro per trovarlo è `tcp.flags.reset == 1`:
+
+![Pacchetti con il flag RST in una connessione rifiutata](/images/wireshark-rst.png "tcp.flags.reset == 1: la destinazione risponde RST a ogni SYN")
+
+Quando invece compaiono solo pacchetti `[SYN]`, ripetuti a intervalli sempre più lunghi e mai risposti, qualcosa li **scarta** lungo la strada (un firewall, una rotta sbagliata): un problema diverso, da cercare in un altro posto.
+
+## 🔐 HTTPS: decifrare il proprio traffico
+
+TLS nasconde il contenuto, ma a un client si può chiedere di scrivere le sue chiavi di sessione: con quelle Wireshark decifra quello che **quel client** ha mandato e ricevuto. Nient'altro.
+
 ```bash
-sudo apt update
-sudo apt install wireshark
-sudo usermod -aG wireshark manzolo
-groups | grep wireshark
+# 1. Capture, and make the client write its session keys
+tshark -i enp2s0 -f "tcp port 443" -w tls.pcapng
+SSLKEYLOGFILE=$HOME/tls-keys.log curl -s -o /dev/null https://example.com/
+
+# 2. Without the keys: only "Application Data"
+tshark -r tls.pcapng -Y tls.app_data
+
+# 3. With the keys: the HTTP inside
+tshark -r tls.pcapng -o tls.keylog_file:$HOME/tls-keys.log -Y http
+
+# The same in the GUI
+wireshark -o tls.keylog_file:$HOME/tls-keys.log -r tls.pcapng
 ```
 
-**Output**:
-```
-manzolo wireshark
+```text
+   11 0.041216857 192.168.122.18 → 172.66.147.243 HTTP 162 GET / HTTP/1.1
+   14 0.064270505 172.66.147.243 → 192.168.122.18 HTTP 93 HTTP/1.1 200 OK  (text/html)
 ```
 
-### Esempio 2: catturare il traffico HTTP
-Cattura il traffico HTTP su `eth0` con `tshark`:
+![Traffico TLS senza le chiavi: Client Hello, poi solo Application Data](/images/wireshark-tls-encrypted.png "Senza le chiavi: si vede il nome del sito (SNI, example.com), il contenuto no")
+
+![La stessa cattura con il file delle chiavi: GET e 200 OK in chiaro](/images/wireshark-tls-decrypted.png "Con il file delle chiavi: l'HTTP dentro, e una scheda Decrypted TLS sotto i byte")
+
+`curl` rispetta `SSLKEYLOGFILE` (provato qui sopra); Firefox e i browser basati su Chromium leggono la stessa variabile quando vengono avviati da un terminale che la imposta. Nell'interfaccia grafica l'impostazione sta in **Edit → Preferences → Protocols → TLS → (Pre)-Master-Secret log filename**.
+
+{{< callout type="warning" >}}
+**Il file delle chiavi decifra tutto quello che è stato registrato con lui**, password e cookie compresi. Usalo sul tuo traffico, tienilo fuori dalle cartelle condivise e cancellalo quando hai finito.
+{{< /callout >}}
+
+## 📊 Chi parla con chi
+
 ```bash
-tshark -i eth0 -f "tcp port 80"
+tshark -r http.pcapng -q -z conv,ip
 ```
 
-**Output**:
-```
-Capturing on 'eth0'
-1 0.000000 192.168.1.100 → 93.184.216.34 HTTP 123 GET /index.html HTTP/1.1
-2 0.001234 93.184.216.34 → 192.168.1.100 HTTP 456 HTTP/1.1 200 OK
+```text
+================================================================================
+IPv4 Conversations
+Filter:<No Filter>
+                                   |       <-      | |       ->      | |     Total     |
+                                   | Frames  Bytes | | Frames  Bytes | | Frames  Bytes |
+192.168.122.18 <-> 104.20.23.154        5 1271 bytes       7 544 bytes      12 1815 bytes
+================================================================================
 ```
 
-Nella GUI:
-1. Avvia Wireshark (`wireshark &`).
-2. Seleziona `eth0`, imposta il filtro di cattura `tcp port 80` e avvia la cattura.
-3. Applica il filtro di visualizzazione `http` per vedere i pacchetti HTTP.
+(Colonne accorciate.) Il `-q` conta: senza, `tshark` prima stampa tutti i pacchetti e solo dopo le statistiche. Nell'interfaccia grafica: **Statistics → Conversations** e **Statistics → Protocol Hierarchy**.
 
-### Esempio 3: debug dei problemi di connessione TCP
-Cattura il traffico TCP per diagnosticare i problemi di connessione:
+## 🛰️ Catturare su una macchina remota
+
 ```bash
-tshark -i eth0 -f "tcp port 22"
+# On the remote host your user must be in the wireshark group:
+# ssh has no terminal to type a sudo password into
+ssh user@remote-host "tshark -i enp2s0 -f 'not port 22' -w -" > remote.pcapng
+wireshark remote.pcapng
 ```
 
-**Output** (una connessione SSH fallita):
-```
-1 0.000000 192.168.1.100 → 192.168.1.10 TCP 66 12345 → 22 [SYN] Seq=0 Win=64240 Len=0
-2 0.001234 192.168.1.10 → 192.168.1.100 TCP 66 22 → 12345 [RST, ACK] Seq=0 Ack=1 Win=0 Len=0
-```
+Il `not port 22` non è facoltativo. La cattura torna indietro **dentro la sessione SSH che sta catturando**: ogni pacchetto spedito crea altri pacchetti da catturare. Nella prova, 6 secondi su una rete quasi ferma hanno dato 42 pacchetti, 40 dei quali erano la sessione SSH stessa; con il filtro, 2.
 
-Nella GUI:
-1. Avvia la cattura su `eth0`.
-2. Applica il filtro di visualizzazione `tcp.port == 22 && tcp.flags.reset == 1` per trovare i reset TCP.
+## 🪤 Le trappole, in una tabella
 
-### Esempio 4: salvare e analizzare un file di cattura
-Salva una cattura e analizzala più tardi:
-```bash
-tshark -i eth0 -w capture.pcap
-wireshark capture.pcap &
-```
+| Sintomo | Causa |
+|---------|-------|
+| Nessuna interfaccia nell'interfaccia grafica, nessun errore | In questa sessione non sei ancora nel gruppo `wireshark`: esci e rientra |
+| `Couldn't run dumpcap in child process: Permission denied` | Stessa causa, da `tshark` |
+| Barra del filtro rossa, `"80" was unexpected in this context` | Un filtro di cattura (BPF) scritto come filtro di visualizzazione |
+| Una cattura remota fatta quasi solo di SSH | Il trasporto della cattura stessa: aggiungi `not port 22` |
+| `-z conv,ip` inonda il terminale | Manca `-q` |
+| L'HTTPS mostra solo «Application Data» | Niente file delle chiavi: `SSLKEYLOGFILE` sul client, poi `tls.keylog_file` |
+| `eth0` non esiste | Nomi delle interfacce «prevedibili»: `ip -br link` |
 
-Applica un filtro nella GUI di Wireshark (per esempio `ip.addr == 192.168.1.100`).
+## 📚 Risorse
 
-## Varianti
-
-### Usare `tcpdump` per una cattura leggera
-Se Wireshark è troppo pesante, usa `tcpdump`:
-```bash
-sudo apt install tcpdump
-sudo tcpdump -i eth0 -w capture.pcap
-```
-
-Apri il file in Wireshark:
-```bash
-wireshark capture.pcap &
-```
-
-### Catturare su un server remoto
-Cattura il traffico da remoto con SSH e `tshark`:
-```bash
-ssh user@remote-host "tshark -i eth0 -w -" > remote-capture.pcap
-wireshark remote-capture.pcap &
-```
-
-### Analizzare il traffico cifrato
-Se il traffico è cifrato (per esempio HTTPS), configura Wireshark con le chiavi SSL/TLS:
-1. Esporta la chiave SSL del browser (per esempio `SSLKEYLOGFILE=/tmp/sslkey.log` in Firefox).
-2. In Wireshark: Edit → Preferences → Protocols → TLS → imposta (Pre)-Master-Secret log filename.
-
-## I comandi, uno per uno
-- **ip link show**: elenca le interfacce di rete.
-- **tshark -D**: elenca le interfacce di cattura.
-- **wireshark**: avvia la GUI di Wireshark.
-- **tshark -i <interface>**: cattura i pacchetti da CLI.
-- **tshark -f "<filter>"**: applica i filtri di cattura (per esempio `tcp port 80`).
-- **tshark -w <file>**: salva la cattura in un file PCAP.
-- **apt install wireshark/tshark**: installa Wireshark o lo strumento CLI.
-- **wireshark <file>**: apre un file PCAP per l'analisi.
-
-## Casi d'uso
-- **Debug della connettività**: individuare reset TCP o pacchetti persi.
-- **Monitoraggio del traffico web**: analizzare richieste e risposte HTTP.
-- **Analisi di sicurezza**: rilevare traffico sospetto (per esempio i port scan).
-- **Analisi della banda**: capire chi genera più traffico o quali protocolli si usano.
-
-## Consigli pratici
-- **Esegui senza root**: aggiungi sempre gli utenti al gruppo `wireshark`, così eviti di lanciarlo come root.
-- **Usa i filtri di cattura**: riduci i dati catturati con i filtri (per esempio `tcp port 80`) per migliorare le prestazioni.
-- **Salva le catture**: conserva i file PCAP per analizzarli più tardi o condividerli.
-- **Scorciatoie per i filtri**: sfrutta il completamento automatico di Wireshark nella barra dei filtri per scriverli in fretta.
-- **Controlla i permessi**: assicurati che l'interfaccia di cattura sia accessibile (per esempio `sudo chmod o+rw /dev/bpf*` su alcuni sistemi).
-
-## Risoluzione dei problemi
-- **Wireshark non avvia la cattura**: verifica che l'utente sia nel gruppo `wireshark` oppure usa `sudo`. Controlla con `ip link show` che le interfacce siano valide.
-- **Nessun pacchetto catturato**: assicurati di aver selezionato l'interfaccia giusta e che ci sia traffico (per esempio `ping 8.8.8.8`).
-- **Permission denied**: lancia `sudo dpkg-reconfigure wireshark-common` e scegli Yes per la cattura senza root.
-- **Uso elevato della CPU**: usa i filtri di cattura per limitare i pacchetti, oppure passa a `tshark`.
-- **Traffico cifrato**: configura le chiavi SSL/TLS per analizzare l'HTTPS.
-- **Controlla i log**: guarda `/var/log/syslog` o `journalctl -u wireshark` per gli errori.
-
-## Risorse
-- [Guida utente di Wireshark](https://www.wireshark.org/docs/wsug_html_chunked/)
-- [Guida al networking di Ubuntu](https://ubuntu.com/server/docs/networking)
+- [Wireshark User's Guide](https://www.wireshark.org/docs/wsug_html_chunked/)
+- [Riferimento dei filtri di visualizzazione](https://www.wireshark.org/docs/dfref/)
+- [pcap-filter(7)](https://www.tcpdump.org/manpages/pcap-filter.7.html) - la sintassi dei filtri di cattura
 - [Pagina man di tshark](https://www.wireshark.org/docs/man-pages/tshark.html)
-
----
-
-*Analizza il traffico di rete con Wireshark, per un debug e un monitoraggio efficaci su Debian/Ubuntu!*
+- [Analisi del traffico di rete con tcpdump](/it/2025/10/network-traffic-analysis-with-tcpdump-debian/ubuntu/) - le stesse catture, solo da riga di comando

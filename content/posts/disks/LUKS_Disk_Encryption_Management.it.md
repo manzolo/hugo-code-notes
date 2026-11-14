@@ -2,7 +2,7 @@
 title: "Guida alla gestione della cifratura dei dischi con LUKS (Debian/Ubuntu)"
 url: "2025/10/luks-disk-encryption-management-guide-debian/ubuntu/"
 date: 2025-10-03T14:00:00+02:00
-lastmod: 2025-10-03T14:00:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["luks", "encryption", "cryptsetup", "security", "disk-encryption"]
@@ -29,10 +29,10 @@ LUKS protegge i dati a riposo, ed è quindi essenziale per mettere le informazio
 ## Che cos'è LUKS?
 
 LUKS è una specifica di cifratura dei dischi che usa una master key protetta da una o più passphrase fornite dall'utente. Le caratteristiche principali:
-- **Più chiavi**: fino a 8 key slot per passphrase o keyfile diversi.
+- **Più chiavi**: fino a 32 key slot con LUKS2 (8 con il vecchio LUKS1) per passphrase o keyfile diversi.
 - **Header**: conserva i metadati (cifrario, hash, key slot) all'inizio del device.
 - **Integrazione**: funziona con LVM (volumi cifrati), loop device (file cifrati) o dischi interi.
-- **Sicurezza**: usa cifrari robusti (per esempio AES-XTS) e PBKDF2 per rinforzare la passphrase.
+- **Sicurezza**: usa cifrari robusti (per esempio AES-XTS) e una funzione di derivazione della chiave per rinforzare la passphrase: Argon2id con LUKS2, il formato predefinito di cryptsetup dalla 2.1 (Ubuntu 20.04, Debian 11), PBKDF2 con LUKS1.
 - **Sblocco**: i device vengono «aperti» creando un device mapper decifrato (per esempio `/dev/mapper/cryptdisk`).
 
 LUKS si gestisce con lo strumento `cryptsetup`, che permette di cifrare partizioni, container o array RAID.
@@ -179,12 +179,20 @@ sudo cryptsetup luksClose cryptdisk
 
 **Output** (estratto di luksDump):
 ```
-LUKS header information for /dev/sdb1
-Version:        1
-Cipher name:    aes
-Cipher mode:    xts-plain64
-Hash spec:      sha256
-Keyslots:       0 active
+LUKS header information
+Version:        2
+...
+Data segments:
+  0: crypt
+        offset: 16777216 [bytes]
+        length: (whole device)
+        cipher: aes-xts-plain64
+...
+Keyslots:
+  0: luks2
+        Key:        512 bits
+        ...
+        PBKDF:      argon2id
 ...
 ```
 
@@ -216,7 +224,7 @@ sudo cryptsetup luksHeaderRestore /dev/sdb1 --header-backup-file luks_header.bac
 ## I comandi, uno per uno
 
 - **luksFormat**: inizializza LUKS su un device.
-- **luksOpen/luksClose**: sbloccano/bloccano il device cifrato.
+- **luksOpen/luksClose**: sbloccano/bloccano il device cifrato (sintassi vecchia, ancora accettata; la forma attuale è `open`/`close`).
 - **luksAddKey/luksRemoveKey/luksChangeKey**: gestiscono i key slot.
 - **resize**: allarga il device cifrato (seguito dal ridimensionamento del filesystem interno).
 - **luksHeaderBackup/Restore**: salvano/ripristinano i metadati.
@@ -256,7 +264,8 @@ Opzioni comuni: `--cipher`, `--key-size`, `--hash` per una sicurezza su misura.
 - **Device non trovato**: controlla con `lsblk`; ricarica i moduli (`modprobe dm-crypt`).
 - **Il mount fallisce**: assicurati di averlo aperto con `luksOpen`; controlla il filesystem con `fsck`.
 - **Tutte le chiavi dimenticate**: i dati sono irrecuperabili, a riprova di quanto contano i backup.
-- **Cifratura lenta**: usa hardware più potente o meno iterazioni (`--iter-time`).
+- **Sblocco lento**: `--iter-time` (tempo del PBKDF in ms) decide quanto dura lo sblocco, non la velocità di lettura e scrittura; puoi abbassarlo con `luksChangeKey --iter-time`.
+- **Cifratura lenta**: controlla `cryptsetup benchmark` e il supporto AES della CPU (AES-NI); se serve, usa hardware più potente.
 
 ## Prossimi passi
 Nei prossimi tutorial vedremo:

@@ -3,7 +3,7 @@ title: "Git"
 url: "bash/git/"
 #description: ""
 date: 2025-09-26T10:00:00+01:00
-lastmod: 2025-09-26T10:00:00+01:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["git", "version-control", "commands", "github", "reference"]
@@ -31,7 +31,7 @@ Git tiene traccia delle modifiche ai file e permette a più persone di lavorare 
 
 ## Cos'è Gitflow?
 
-Gitflow è una strategia di branching che definisce branch specifici per lo sviluppo, le feature, i rilasci e gli hotfix. Garantisce un workflow strutturato, soprattutto ai team che lavorano su progetti di lunga durata con più rilasci.
+Gitflow è una strategia di branching che definisce branch specifici per lo sviluppo, le feature, i rilasci e gli hotfix. Garantisce un workflow strutturato, soprattutto ai team che lavorano su progetti di lunga durata con più rilasci. Il suo stesso autore avverte (2020) che per il software rilasciato in modo continuo, come le web app, è più adatto un workflow più semplice come GitHub Flow.
 
 ## Prerequisiti
 
@@ -314,7 +314,7 @@ chmod +x manage_gitflow.sh
 
 - **Conflitti di merge**: modifica i file in conflitto, segnali come risolti (`git add`) e prosegui con il merge o il rebase.
 - **Errori nel push sul remoto**: prima di fare il push assicurati di avere le ultime modifiche (`git pull --rebase`).
-- **Commit persi**: usa `git reflog` per ritrovare gli hash dei commit persi e recuperali con `git checkout commit_hash`.
+- **Commit persi**: usa `git reflog` per ritrovare gli hash dei commit persi e recuperali con `git branch recovered-work commit_hash` (un semplice `git checkout commit_hash` ti lascia solo in detached HEAD).
 - **Gitflow non trovato**: installa `git-flow` oppure riproduci il workflow con i comandi standard di Git.
 
 ## Prossimi passi
@@ -330,7 +330,7 @@ Nei prossimi tutorial vedremo:
 1. **Sviluppo di una feature**: crea un branch di feature, aggiungi un file e fai il merge in `develop` usando Gitflow.
 2. **Processo di rilascio**: simula un rilascio con un tag di versione e fanne il push su un repository remoto.
 3. **Hotfix**: crea un branch di hotfix, applica una correzione e fai il merge in `main` e in `develop`.
-4. **Analisi della cronologia**: usa `git log` e `git blame` per analizzare le modifiche a un file.
+4. **Analisi della cronologia**: usa `git log` e `git blame` (chi ha modificato per ultimo ogni riga) per analizzare le modifiche a un file.
 
 ## Risorse
 

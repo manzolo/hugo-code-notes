@@ -1,7 +1,7 @@
 ---
 title: "Build Your Own Ubuntu Repository with Docker"
 date: 2025-11-08T08:30:00+02:00
-lastmod: 2025-11-08T08:30:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["ubuntu", "repository", "apt", "packaging", "dpkg"]
@@ -171,7 +171,7 @@ set -e
 
 # Load environment variables with defaults
 REPO_NAME="${REPO_NAME:-myrepo}"
-REPO_DISTRIBUTION="${REPO_DISTRIBUTION:-focal}"
+REPO_DISTRIBUTION="${REPO_DISTRIBUTION:-noble}"
 REPO_COMPONENT="${REPO_COMPONENT:-main}"
 REPO_ARCHITECTURE="${REPO_ARCHITECTURE:-amd64}"
 GPG_KEY_NAME="${GPG_KEY_NAME:-Ubuntu Repo Signing Key}"
@@ -270,10 +270,10 @@ echo "════════════════════════�
 echo "Client Configuration:"
 echo "═══════════════════════════════════════════════════════"
 echo "1. Download and install GPG key:"
-echo "   wget -qO - http://$SERVER_NAME/KEY.gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/$REPO_NAME.gpg"
+echo "   wget -qO - http://$SERVER_NAME/KEY.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/$REPO_NAME.gpg"
 echo ""
 echo "2. Add repository:"
-echo "   echo \"deb [signed-by=/etc/apt/trusted.gpg.d/$REPO_NAME.gpg] http://$SERVER_NAME $REPO_DISTRIBUTION $REPO_COMPONENT\" | sudo tee /etc/apt/sources.list.d/$REPO_NAME.list"
+echo "   echo \"deb [signed-by=/etc/apt/keyrings/$REPO_NAME.gpg] http://$SERVER_NAME $REPO_DISTRIBUTION $REPO_COMPONENT\" | sudo tee /etc/apt/sources.list.d/$REPO_NAME.list"
 echo ""
 echo "3. Update package lists:"
 echo "   sudo apt update"
@@ -296,7 +296,7 @@ This script handles package operations inside the container. Create `repo-manage
 #!/bin/bash
 
 REPO_NAME="${REPO_NAME:-myrepo}"
-REPO_DISTRIBUTION="${REPO_DISTRIBUTION:-focal}"
+REPO_DISTRIBUTION="${REPO_DISTRIBUTION:-noble}"
 
 # Add package to repository
 add_package() {
@@ -359,6 +359,8 @@ chmod +x repo-manager.sh
 Create `docker-compose.yml`:
 
 ```yaml
+name: ubuntu-repo
+
 services:
   ubuntu-repo:
     build:
@@ -369,7 +371,7 @@ services:
 
     environment:
       - REPO_NAME=${REPO_NAME:-myrepo}
-      - REPO_DISTRIBUTION=${REPO_DISTRIBUTION:-focal}
+      - REPO_DISTRIBUTION=${REPO_DISTRIBUTION:-noble}
       - REPO_COMPONENT=${REPO_COMPONENT:-main}
       - REPO_ARCHITECTURE=${REPO_ARCHITECTURE:-amd64}
       - GPG_KEY_NAME=${GPG_KEY_NAME:-Ubuntu Repo Signing Key}
@@ -409,6 +411,8 @@ networks:
     name: ubuntu-repo-network
 ```
 
+The top-level `name:` fixes the Compose project name, so the volumes are always called `ubuntu-repo_repo-data`, `ubuntu-repo_gpg-keys` and so on, whatever your project folder is called (the backup script below relies on it).
+
 ## Step 5: Create Environment Configuration
 
 Create a `.env` file with your configuration:
@@ -417,11 +421,10 @@ Create a `.env` file with your configuration:
 # Server Configuration
 SERVER_NAME=repo.example.com  # Or your IP address
 HTTP_PORT=8080                # Port to expose (80 for production)
-CONTAINER_NAME=ubuntu-repo
 
 # Repository Configuration
 REPO_NAME=myrepo
-REPO_DISTRIBUTION=focal       # focal=20.04, jammy=22.04, noble=24.04
+REPO_DISTRIBUTION=noble       # focal=20.04, jammy=22.04, noble=24.04
 REPO_COMPONENT=main
 REPO_ARCHITECTURE=amd64       # or arm64, armhf, i386
 
@@ -551,12 +554,13 @@ On any Ubuntu/Debian machine that should use your repository:
 ### Modern Method (Recommended)
 
 ```bash
-# 1. Download and trust the GPG key
+# 1. Download the GPG key into a dedicated keyring
+sudo install -d -m 0755 /etc/apt/keyrings
 wget -qO - http://repo.example.com:8080/KEY.gpg | \
-    sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/myrepo.gpg
+    sudo gpg --dearmor -o /etc/apt/keyrings/myrepo.gpg
 
 # 2. Add the repository with signed-by
-echo "deb [signed-by=/etc/apt/trusted.gpg.d/myrepo.gpg] http://repo.example.com:8080 focal main" | \
+echo "deb [signed-by=/etc/apt/keyrings/myrepo.gpg] http://repo.example.com:8080 noble main" | \
     sudo tee /etc/apt/sources.list.d/myrepo.list
 
 # 3. Update package lists
@@ -593,16 +597,13 @@ done
 
 ### Adding HTTPS Support
 
-For production environments, use a reverse proxy like Traefik or add certbot:
+For production environments, put a reverse proxy such as Traefik, Nginx Proxy Manager or Caddy in front of the container and let it handle TLS. Running certbot inside the container does not last: the compose file publishes no port 443, the entrypoint rewrites the nginx site at every start, `/etc/letsencrypt` is not on a volume, and there is no cron or systemd to renew the certificate. A minimal Caddy example:
 
-```bash
-# Install certbot in container
-apt-get install certbot python3-certbot-nginx
-
-# Get certificate
-certbot --nginx -d repo.example.com
-
-# Auto-renewal is configured automatically
+```
+# Caddyfile on the proxy host: gets and renews the certificate itself
+repo.example.com {
+    reverse_proxy localhost:8080
+}
 ```
 
 ### Automating Package Builds
@@ -622,7 +623,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v5
 
       - name: Build packages
         run: |
@@ -660,7 +661,7 @@ If clients report GPG errors:
 ```bash
 # Re-export and re-import the key
 wget -qO - http://your-server:8080/KEY.gpg | \
-    sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/myrepo.gpg
+    sudo gpg --dearmor -o /etc/apt/keyrings/myrepo.gpg
 ```
 
 ### Package Not Found After Adding
@@ -722,7 +723,7 @@ echo "Backup completed: $BACKUP_DIR"
 You now have a fully functional Ubuntu package repository that can:
 
 - ✅ Host and distribute .deb packages
-- ✅ Sign packages with GPG for authenticity
+- ✅ Sign the repository metadata with GPG for authenticity
 - ✅ Support multiple Ubuntu/Debian distributions
 - ✅ Run in a containerized environment
 - ✅ Persist data across container restarts

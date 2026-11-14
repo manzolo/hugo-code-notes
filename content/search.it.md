@@ -3,7 +3,7 @@ title: "Cerca"
 url: "search/"
 description: "Cerca fra tutti gli articoli, i tutorial e le guide"
 date: 2025-09-25T12:00:00+01:00
-lastmod: 2025-09-25T12:00:00+01:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 showToc: false
@@ -37,14 +37,6 @@ Trova esattamente quello che ti serve fra tutti i tutorial, le guide e gli appun
 - [Automazione con Python](/?s=python+automation)
 - [Amministrazione di Linux](/?s=linux+admin)
 
-## Filtri rapidi
-
-Usa queste scorciatoie per filtrare i risultati:
-- **Articoli recenti**: gli articoli degli ultimi 30 giorni
-- **I più letti**: i contenuti più visti
-- **Per chi comincia**: perfetti per chi è alle prime armi
-- **Argomenti avanzati**: contenuti tecnici approfonditi
-
 ---
 
-*Non trovi quello che ti serve? [Proponi un argomento](mailto:your-email@example.com) per i prossimi articoli!*
+*Non trovi quello che ti serve? [Proponi un argomento](https://github.com/manzolo) per i prossimi articoli!*

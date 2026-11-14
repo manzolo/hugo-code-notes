@@ -2,6 +2,7 @@
 title: "Ridimensionare un disco QEMU/VirtualBox"
 url: "2025/10/qemu/virtualbox-disk-resize/"
 date: 2025-10-05T16:30:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["qemu", "resize", "disk", "virtualization", "quick-tip"]
@@ -50,7 +51,7 @@ sudo parted /dev/nbd0
 
 **Dentro parted:**
 ```
-(parted) print                    # Show current partitions
+(parted) print                    # Show current partitions (on GPT, answer Fix when asked to fix the GPT)
 (parted) resizepart 2 100%        # Resize partition 2 to use all space
 (parted) quit                     # Exit parted
 ```
@@ -77,8 +78,8 @@ qemu-img resize -f raw Ubuntu.vhd 200G
 ```
 
 **Cosa fa:**
-- `-f raw`: indica il formato (raw, qcow2, vdi, vhd, vmdk)
-- `Ubuntu.vhd`: il file con l'immagine del disco
+- `-f raw`: indica il formato (raw, qcow2, vdi, vpc per i VHD, vmdk); in qemu-img 8.2 `resize` funziona su raw e qcow2, non su vpc/vdi/vmdk
+- `Ubuntu.vhd`: il file con l'immagine del disco; qui sono dati raw nonostante l'estensione (`qemu-img info` dice `file format: raw`, come per un VHD a dimensione fissa, che è un raw più un footer di 512 byte). Se ridimensioni un VHD fisso con `-f raw`, quel footer finisce in mezzo al disco: QEMU lo avvia ancora, Hyper-V e VirtualBox non lo leggono più come VHD
 - `200G`: la nuova dimensione totale (non lo spazio aggiunto!)
 
 **Formati della dimensione:**
@@ -101,8 +102,7 @@ sudo qemu-nbd --connect=/dev/nbd0 -f raw Ubuntu.vhd
 ### 3. Ridimensionare la partizione
 
 ```bash
-sudo parted /dev/nbd0
-(parted) resizepart 2 100%
+sudo parted /dev/nbd0 resizepart 2 100%
 ```
 
 **Cosa fa:**
@@ -147,8 +147,11 @@ qemu-img resize Ubuntu.raw 200G
 
 ### VMDK (VMware)
 ```bash
-# Resize VMDK
-qemu-img resize -f vmdk disk.vmdk 200G
+# qemu-img cannot resize vmdk ("Image format driver does not support resize"):
+# go through raw, then back
+qemu-img convert -f vmdk -O raw disk.vmdk disk.raw
+qemu-img resize -f raw disk.raw 200G
+qemu-img convert -f raw -O vmdk disk.raw disk.vmdk
 
 # Connect
 sudo qemu-nbd --connect=/dev/nbd0 -f vmdk disk.vmdk
@@ -311,6 +314,8 @@ sudo parted $NBD_DEVICE print
 
 # Step 5: Resize partition
 echo "[5/6] Resizing partition $PARTITION_NUM..."
+# GPT: move the backup header to the new end of the disk, or resizepart fails
+printf "Fix\n" | sudo parted ---pretend-input-tty $NBD_DEVICE print >/dev/null
 sudo parted $NBD_DEVICE resizepart $PARTITION_NUM 100%
 
 # Step 6: Resize filesystem
@@ -379,10 +384,9 @@ sudo qemu-nbd --connect=/dev/nbd0 -f raw Ubuntu.vhd
 sudo e2fsck -f /dev/nbd0p2
 sudo resize2fs /dev/nbd0p2 150G  # Shrink filesystem first!
 
-# 3. Shrink partition
-sudo parted /dev/nbd0
-(parted) resizepart 2 150GB
-(parted) quit
+# 3. Shrink partition: resizepart takes the END position, not the size,
+#    and it must stay beyond partition start + 150GiB (parted "GB" = 10^9 bytes)
+sudo parted /dev/nbd0 resizepart 2 155GiB
 
 # 4. Disconnect
 sudo qemu-nbd --disconnect /dev/nbd0
@@ -494,11 +498,11 @@ sudo resize2fs /dev/nbd0p2
 
 **Soluzione**:
 ```bash
-# Convert to raw format first
-VBoxManage clonehd Ubuntu.vdi Ubuntu.vhd --format VHD
+# Convert to raw format first (qemu-img cannot resize VDI or VHD)
+VBoxManage clonemedium disk Ubuntu.vdi Ubuntu.img --format RAW
 
 # Resize using qemu-img
-qemu-img resize Ubuntu.vhd 200G
+qemu-img resize -f raw Ubuntu.img 200G
 
 # Follow NBD process above
 
@@ -515,8 +519,8 @@ VBoxManage modifymedium disk <UUID> --resize 204800
 | RAW | `qemu-img resize -f raw disk.raw 200G` | Il più veloce, il file più grande |
 | QCOW2 | `qemu-img resize -f qcow2 disk.qcow2 +50G` | Nativo di QEMU, dinamico |
 | VDI | `VBoxManage modifymedium disk.vdi --resize 204800` | VirtualBox (dimensione in MB) |
-| VHD | `qemu-img resize -f vpc disk.vhd 200G` | Hyper-V/VirtualBox |
-| VMDK | `qemu-img resize -f vmdk disk.vmdk 200G` | VMware |
+| VHD | `qemu-img convert -f vpc -O raw disk.vhd disk.raw`, poi ridimensioni il file raw | Hyper-V/VirtualBox (qemu-img non ridimensiona `vpc`) |
+| VMDK | `qemu-img convert -O raw`, `resize`, `convert -O vmdk` | VMware (niente resize diretto) |
 
 ## ⚠️ Avvertenze importanti
 
@@ -552,8 +556,11 @@ sudo qemu-nbd --disconnect /dev/nbd0
 qemu-img resize -f raw Windows.vhd 300G
 sudo modprobe nbd
 sudo qemu-nbd --connect=/dev/nbd0 -f raw Windows.vhd
-sudo parted /dev/nbd0 resizepart 2 100%
-sudo ntfsresize -f /dev/nbd0p2  # For NTFS
+# Typical UEFI layout: 1 = EFI, 2 = MSR (16MB), 3 = Windows (NTFS), 4 = Recovery
+# Partition 3 can grow only if nothing follows it: move or delete
+# the Recovery partition first (check with: sudo parted /dev/nbd0 print)
+sudo parted /dev/nbd0 resizepart 3 100%
+sudo ntfsresize -f /dev/nbd0p3  # For NTFS
 sudo qemu-nbd --disconnect /dev/nbd0
 ```
 
@@ -588,10 +595,8 @@ qemu-img resize -f raw disk.vhd +50G
 sudo modprobe nbd max_part=8
 sudo qemu-nbd --connect=/dev/nbd0 -f raw disk.vhd
 
-# 3. RESIZE PARTITION (interactive)
-sudo parted /dev/nbd0
-> resizepart 2 100%
-> quit
+# 3. RESIZE PARTITION
+sudo parted /dev/nbd0 resizepart 2 100%
 
 # 4. RESIZE FILESYSTEM
 sudo resize2fs /dev/nbd0p2        # ext4

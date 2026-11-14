@@ -1,7 +1,7 @@
 ---
 title: "Network Troubleshooting: A Layered Diagnostic Method"
 date: 2026-09-18T12:00:00+02:00
-lastmod: 2026-09-18T12:00:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["networking", "troubleshooting", "linux", "windows", "dns"]
@@ -413,6 +413,9 @@ them and it is *always* something a human typed during an earlier troubleshootin
 
 ```bash
 cat /etc/hosts
+```
+
+```cmd
 type C:\Windows\System32\drivers\etc\hosts
 ```
 

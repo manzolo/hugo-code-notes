@@ -2,7 +2,7 @@
 title: "Guida base a Docker Compose per principianti (Debian/Ubuntu)"
 url: "docker-compose/basic_docker_compose_guide/"
 date: 2025-10-11T09:55:00+02:00
-lastmod: 2025-10-11T09:55:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["docker-compose", "beginner", "nodejs", "postgresql", "tutorial"]
@@ -35,10 +35,10 @@ Come esempio, questa guida mette in piedi un web server Node.js e un database Po
 
 ## Prerequisiti
 
-- **Debian/Ubuntu**: versione 20.04+.
+- **Debian/Ubuntu**: Debian 12+ o Ubuntu 22.04+ (le versioni supportate oggi da Docker Engine).
 - **Accesso root**: usa `sudo` per l'installazione e per i comandi Docker.
 - **Accesso a Internet**: necessario per installare Docker e scaricare le immagini.
-- **Strumenti**: `curl` o `wget` per scaricare gli script di installazione.
+- **Strumenti**: `curl` per provare l'applicazione web.
 - **Conoscenze di base**: un po' di familiarità con i comandi del terminale.
 
 Verifica il sistema:
@@ -89,7 +89,7 @@ Crea un web server Node.js di base per l'esempio.
 
 4. Crea un `Dockerfile`:
    ```bash
-   echo -e 'FROM node:16\nWORKDIR /usr/src/app\nCOPY package.json ./\nRUN npm install\nCOPY . .\nEXPOSE 4000\nCMD ["node", "server.js"]' > Dockerfile
+   echo -e 'FROM node:22\nWORKDIR /usr/src/app\nCOPY package.json ./\nRUN npm install\nCOPY . .\nEXPOSE 4000\nCMD ["node", "server.js"]' > Dockerfile
    ```
 
 5. Torna alla radice del progetto:
@@ -151,11 +151,11 @@ Verifica che i container siano in esecuzione:
 docker compose ps
 ```
 ![Stato dei container di Docker Compose](/images/docker-compose-ps.png "Output di docker compose ps")
-Output di esempio:
+Output di esempio (il nome dell'immagine viene dalla cartella del progetto, `my-app`):
 ```
-NAME    SERVICE  STATUS      PORTS
-app     app      running     0.0.0.0:4000->4000/tcp
-db      db       running
+NAME      IMAGE         COMMAND                  SERVICE   CREATED         STATUS         PORTS
+app       my-app-app    "docker-entrypoint.s…"   app       5 seconds ago   Up 5 seconds   0.0.0.0:4000->4000/tcp, [::]:4000->4000/tcp
+db        postgres:16   "docker-entrypoint.s…"   db        5 seconds ago   Up 5 seconds   5432/tcp
 ```
 
 Prova l'applicazione web:
@@ -215,9 +215,9 @@ docker compose ps
 
 **Output**:
 ```
-NAME    SERVICE  STATUS      PORTS
-app     app      running     0.0.0.0:4000->4000/tcp
-db      db       running
+NAME      IMAGE         COMMAND                  SERVICE   CREATED         STATUS         PORTS
+app       my-app-app    "docker-entrypoint.s…"   app       5 seconds ago   Up 5 seconds   0.0.0.0:4000->4000/tcp, [::]:4000->4000/tcp
+db        postgres:16   "docker-entrypoint.s…"   db        5 seconds ago   Up 5 seconds   5432/tcp
 ```
 
 ### Esempio 4: fermare e fare pulizia
@@ -231,7 +231,7 @@ docker compose down
 [+] Running 3/3
  ✔ Container app  Removed
  ✔ Container db   Removed
- ✔ Network app-net  Removed
+ ✔ Network my-app_app-net  Removed
 ```
 
 ## Varianti
@@ -250,11 +250,11 @@ Sostituisci l'applicazione Node.js con una in Python Flask:
    ```
 2. Crea `backend/requirements.txt`:
    ```
-   flask==2.0.1
+   flask==3.1.2
    ```
 3. Aggiorna `backend/Dockerfile`:
    ```dockerfile
-   FROM python:3.9
+   FROM python:3.13
    WORKDIR /app
    COPY requirements.txt .
    RUN pip install -r requirements.txt
@@ -283,7 +283,7 @@ services:
 ```
 
 ## I comandi in breve
-- **apt install docker-ce docker-compose-plugin**: installa Docker e Compose.
+- **docker compose version**: controlla che Docker Compose sia installato.
 - **docker compose up -d**: avvia i container in modalità detached.
 - **docker compose ps**: elenca i container in esecuzione.
 - **docker compose down**: ferma e rimuove i container.
@@ -307,7 +307,7 @@ services:
   ```bash
   sudo usermod -aG docker $USER
   ```
-- **Porta già in uso**: cerca i conflitti con `netstat -tuln | grep 4000` e cambia le porte in `docker-compose.yml`.
+- **Porta già in uso**: cerca i conflitti con `ss -tuln | grep 4000` e cambia le porte in `docker-compose.yml`.
 - **Il container esce subito**: controlla i log con `docker compose logs app`.
 - **Il pull dell'immagine fallisce**: verifica l'accesso a Internet e il repository indicato in `docker-compose.yml`.
 - **Problemi di connessione al database**: assicurati che `DATABASE_URL` corrisponda a `POSTGRES_USER`, `POSTGRES_PASSWORD` e `POSTGRES_DB`.

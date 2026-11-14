@@ -2,7 +2,7 @@
 title: "Salvare un disco che sta morendo con ddrescue"
 url: "2026/09/rescuing-a-failing-disk-with-ddrescue/"
 date: 2026-09-18T13:00:00+02:00
-lastmod: 2026-09-18T13:00:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["disks", "recovery", "ddrescue", "linux", "smart"]
@@ -526,8 +526,6 @@ sudo losetup -fP --show disk.img       # /dev/loop0
 Adesso il disco va in un cassetto. Da qui in poi tutto succede sulla copia.
 
 ## 🧪 Adesso ripara l'immagine
-
-Il disco va in un cassetto. Da qui in poi tutto succede sulla copia.
 
 ```bash
 # Attach the image with its partition table

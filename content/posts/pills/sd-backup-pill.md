@@ -47,7 +47,7 @@ sudo dd bs=1M status=progress if=/dev/sdb | gzip > ~/Desktop/retropie_`date +%d%
 Restore the compressed backup to an SD card:
 
 ```bash
-sudo gzip -dc ~/Desktop/retropie_051025.gz | dd bs=1M of=/dev/sdb status=progress
+gzip -dc ~/Desktop/retropie_051025.gz | sudo dd bs=1M of=/dev/sdb status=progress
 ```
 
 **What it does:**
@@ -87,7 +87,7 @@ sudo apt install pv
 sudo dd bs=1M if=/dev/sdb | pv -s 32G | gzip > ~/Desktop/backup_`date +%d%m%y`.gz
 
 # Restore with pv
-sudo gzip -dc ~/Desktop/backup_051025.gz | pv | dd bs=1M of=/dev/sdb
+gzip -dc ~/Desktop/backup_051025.gz | pv | sudo dd bs=1M of=/dev/sdb
 ```
 </details>
 
@@ -128,7 +128,7 @@ gzip -t ~/Desktop/retropie_051025.gz
 sudo dd bs=1M if=/dev/sdb | gzip | ssh user@server 'cat > ~/backups/retropie_`date +%d%m%y`.gz'
 
 # Restore from remote server
-ssh user@server 'cat ~/backups/retropie_051025.gz' | sudo gzip -dc | dd bs=1M of=/dev/sdb
+ssh user@server 'cat ~/backups/retropie_051025.gz' | gzip -dc | sudo dd bs=1M of=/dev/sdb
 ```
 </details>
 

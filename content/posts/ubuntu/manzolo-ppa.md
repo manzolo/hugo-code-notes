@@ -40,11 +40,11 @@ sudo apt update
 
 ## Install my packages
 
-# manzolo-chroot package
+### manzolo-chroot package
 ```bash
 sudo apt install manzolo-chroot
 ```
-# Search all my tools
+### Search all my tools
 ```bash
 apt search manzolo
 ```

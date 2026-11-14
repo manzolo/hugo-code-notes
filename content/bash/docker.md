@@ -267,7 +267,7 @@ chmod +x manage_docker.sh
 ## Troubleshooting
 
 - **Container Won't Start**: Check logs with `docker logs <container_name>` or `docker compose logs`.
-- **Port Conflicts**: Ensure the host port (e.g., `8080`) isn't already in use (`netstat -tuln`).
+- **Port Conflicts**: Ensure the host port (e.g., `8080`) isn't already in use (`ss -tuln`).
 - **Image Pull Issues**: Verify internet connectivity or check Docker Hub for the image.
 - **Volume Permission Issues**: Ensure the host user has access to mounted directories.
 

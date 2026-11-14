@@ -1,7 +1,7 @@
 ---
 title: "Basic Docker Compose Guide for Beginners (Debian/Ubuntu)"
 date: 2025-10-11T09:55:00+02:00
-lastmod: 2025-10-11T09:55:00+02:00
+lastmod: 2026-11-14T19:00:00+01:00
 draft: false
 author: "Manzolo"
 tags: ["docker-compose", "beginner", "nodejs", "postgresql", "tutorial"]
@@ -34,10 +34,10 @@ This guide sets up a Node.js web server and a PostgreSQL database as an example.
 
 ## Prerequisites
 
-- **Debian/Ubuntu**: Version 20.04+.
+- **Debian/Ubuntu**: Debian 12+ or Ubuntu 22.04+ (the releases Docker Engine currently supports).
 - **Root Access**: Use `sudo` for installation and Docker commands.
 - **Internet Access**: Required for installing Docker and pulling images.
-- **Tools**: `curl` or `wget` for downloading installation scripts.
+- **Tools**: `curl` for testing the web app.
 - **Basic Knowledge**: Familiarity with terminal commands.
 
 Verify system:
@@ -88,7 +88,7 @@ Create a basic Node.js web server for the example.
 
 4. Create a `Dockerfile`:
    ```bash
-   echo -e 'FROM node:16\nWORKDIR /usr/src/app\nCOPY package.json ./\nRUN npm install\nCOPY . .\nEXPOSE 4000\nCMD ["node", "server.js"]' > Dockerfile
+   echo -e 'FROM node:22\nWORKDIR /usr/src/app\nCOPY package.json ./\nRUN npm install\nCOPY . .\nEXPOSE 4000\nCMD ["node", "server.js"]' > Dockerfile
    ```
 
 5. Return to the project root:
@@ -150,11 +150,11 @@ Verify containers are running:
 docker compose ps
 ```
 ![Docker Compose container status](/images/docker-compose-ps.png "Output of docker compose ps")
-Example output:
+Example output (the image name comes from the project folder, `my-app`):
 ```
-NAME    SERVICE  STATUS      PORTS
-app     app      running     0.0.0.0:4000->4000/tcp
-db      db       running
+NAME      IMAGE         COMMAND                  SERVICE   CREATED         STATUS         PORTS
+app       my-app-app    "docker-entrypoint.s…"   app       5 seconds ago   Up 5 seconds   0.0.0.0:4000->4000/tcp, [::]:4000->4000/tcp
+db        postgres:16   "docker-entrypoint.s…"   db        5 seconds ago   Up 5 seconds   5432/tcp
 ```
 
 Test the web app:
@@ -214,9 +214,9 @@ docker compose ps
 
 **Output**:
 ```
-NAME    SERVICE  STATUS      PORTS
-app     app      running     0.0.0.0:4000->4000/tcp
-db      db       running
+NAME      IMAGE         COMMAND                  SERVICE   CREATED         STATUS         PORTS
+app       my-app-app    "docker-entrypoint.s…"   app       5 seconds ago   Up 5 seconds   0.0.0.0:4000->4000/tcp, [::]:4000->4000/tcp
+db        postgres:16   "docker-entrypoint.s…"   db        5 seconds ago   Up 5 seconds   5432/tcp
 ```
 
 ### Example 4: Stop and Clean Up
@@ -230,7 +230,7 @@ docker compose down
 [+] Running 3/3
  ✔ Container app  Removed
  ✔ Container db   Removed
- ✔ Network app-net  Removed
+ ✔ Network my-app_app-net  Removed
 ```
 
 ## Variants
@@ -249,11 +249,11 @@ Replace the Node.js app with a Python Flask app:
    ```
 2. Create `backend/requirements.txt`:
    ```
-   flask==2.0.1
+   flask==3.1.2
    ```
 3. Update `backend/Dockerfile`:
    ```dockerfile
-   FROM python:3.9
+   FROM python:3.13
    WORKDIR /app
    COPY requirements.txt .
    RUN pip install -r requirements.txt
@@ -282,7 +282,7 @@ services:
 ```
 
 ## Command Breakdown
-- **apt install docker-ce docker-compose-plugin**: Installs Docker and Compose.
+- **docker compose version**: Checks that Docker Compose is installed.
 - **docker compose up -d**: Starts containers in detached mode.
 - **docker compose ps**: Lists running containers.
 - **docker compose down**: Stops and removes containers.
@@ -306,7 +306,7 @@ services:
   ```bash
   sudo usermod -aG docker $USER
   ```
-- **Port Already in Use**: Check for conflicts with `netstat -tuln | grep 4000` and change ports in `docker-compose.yml`.
+- **Port Already in Use**: Check for conflicts with `ss -tuln | grep 4000` and change ports in `docker-compose.yml`.
 - **Container Exits Immediately**: Check logs with `docker compose logs app`.
 - **Image Pull Fails**: Verify internet access and repository in `docker-compose.yml`.
 - **Database Connection Issues**: Ensure `DATABASE_URL` matches `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB`.

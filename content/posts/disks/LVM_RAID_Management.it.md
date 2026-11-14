@@ -5,7 +5,7 @@ date: 2025-10-03T14:01:00+02:00
 lastmod: 2025-10-03T14:01:00+02:00
 draft: false
 author: "Manzolo"
-tags: ["lvm", "raid", "storage", "mdadm", "volume-management"]
+tags: ["lvm", "raid", "storage", "lvmraid", "volume-management"]
 categories: ["Storage & Disks"]
 series: ["Linux Storage Deep Dive"]
 weight: 4
@@ -28,27 +28,27 @@ LVM RAID è l'ideale dove serve ridondanza (per esempio RAID-1, RAID-5) insieme 
 
 ## Che cos'è LVM RAID?
 
-LVM RAID usa `mdadm` di Linux per le funzioni RAID dentro i physical volume (PV) di LVM, che sono raggruppati in volume group (VG). I logical volume (LV) vengono poi creati con un livello RAID per avere ridondanza:
+LVM RAID usa il codice RAID MD del kernel attraverso il device mapper (`dm-raid`), sopra i physical volume (PV) di LVM, che sono raggruppati in volume group (VG). I logical volume (LV) vengono poi creati con un livello RAID per avere ridondanza:
 - **RAID-1**: mirroring (i dati sono duplicati su più dischi).
 - **RAID-5**: striping con parità (servono 3 o più dischi).
-- **RAID-6**: striping con doppia parità (servono 4 o più dischi).
+- **RAID-6**: striping con doppia parità (servono 5 o più dischi: almeno 3 stripe di dati).
 - **Snapshot**: copie dei LV a un dato istante, per i backup.
 - **Ridimensionamento**: LV e VG si allargano o si riducono dinamicamente.
 
-LVM RAID unisce i vantaggi di `mdadm` (la ridondanza) all'astrazione logica di LVM, e si gestisce con i comandi `lvm` e `mdadm`.
+LVM RAID unisce la ridondanza del RAID all'astrazione logica di LVM, e si gestisce solo con i comandi `lvm`: **`mdadm` non serve**, e i volumi LVM RAID non compaiono in `/proc/mdstat` (verificato entrambe le cose su Ubuntu 24.04: con un RAID1 LVM attivo e mdadm non installato, `/proc/mdstat` elenca le personality e nessun array).
 
 ## Prerequisiti
 
-- **Debian/Ubuntu**: versione 20.04 o successiva (supporto a LVM e mdadm).
-- **LVM2 e mdadm installati**: i pacchetti per gestire LVM e RAID.
+- **Debian/Ubuntu**: Debian 11 o successiva, Ubuntu 20.04 o successiva.
+- **LVM2 installato**: basta il pacchetto `lvm2`.
 - **Dischi**: dischi fisici inutilizzati (per esempio `/dev/sdb`, `/dev/sdc`). **Attenzione**: le operazioni LVM e RAID cancellano i dischi: fai prima un backup dei dati.
 - **Accesso root**: i comandi richiedono `sudo`.
-- **Hardware**: più dischi per il RAID (2 per RAID-1, 3 o più per RAID-5, 4 o più per RAID-6).
+- **Hardware**: più dischi per il RAID (2 per RAID-1, 3 o più per RAID-5, 5 o più per RAID-6).
 
 Installa le dipendenze su Debian/Ubuntu:
 ```bash
 sudo apt update
-sudo apt install lvm2 mdadm
+sudo apt install lvm2
 # Load LVM kernel modules
 sudo modprobe dm-mod
 sudo modprobe dm-raid
@@ -57,7 +57,6 @@ sudo modprobe dm-raid
 Verifica l'installazione:
 ```bash
 lvm version  # Check LVM version
-mdadm --version  # Check mdadm version
 lsblk  # List disks
 ```
 
@@ -99,14 +98,14 @@ Con LVM RAID si creano dei physical volume (PV), un volume group (VG) e un logic
      ```bash
      sudo lvcreate --type raid5 -i 2 -L 10G -n mylv myvg
      ```
-   - **RAID-6 (4 o più dischi, doppia parità)**:
+   - **RAID-6 (5 o più dischi, doppia parità)**:
      ```bash
-     sudo lvcreate --type raid6 -i 2 -L 10G -n mylv myvg
+     sudo lvcreate --type raid6 -i 3 -L 10G -n mylv myvg
      ```
 
    Parametri:
    - `-m 1`: 1 copia in mirror (RAID-1).
-   - `-i 2`: 2 stripe di dati (RAID-5/6: il numero dei dischi meno quelli di parità).
+   - `-i 2` / `-i 3`: numero di stripe di dati (i dischi meno quelli di parità). RAID-6 ne vuole almeno 3: `lvcreate --type raid6 -i 2` fallisce con `Minimum of 3 stripes required for raid6`.
    - `-L 10G`: dimensione del logical volume.
    - `-n mylv`: nome del logical volume.
 
@@ -136,16 +135,18 @@ Il VG o il LV si modificano per allargarli, ridurli o sostituire un disco.
 
 - **Sostituire un disco guasto**:
   ```bash
-  sudo pvs  # Check PV status
-  sudo vgreduce myvg /dev/sdb  # Remove failed PV
-  sudo pvcreate /dev/sdf
+  sudo lvs -a -o name,devices,lv_health_status myvg  # failed leg: [unknown], partial
+  sudo pvcreate /dev/sdf               # a new disk, if the VG has no free one
   sudo vgextend myvg /dev/sdf
-  sudo lvsync /dev/myvg/mylv  # Resync RAID
+  sudo lvconvert --repair myvg/mylv    # rebuild the failed leg on a free PV
+  sudo vgreduce --removemissing myvg   # drop the dead disk from the VG
   ```
 
 - **Convertire il livello RAID** (per esempio da RAID-1 a RAID-5):
   ```bash
-  sudo lvconvert --type raid5 -i 2 /dev/myvg/mylv
+  sudo lvconvert --type raid5 /dev/myvg/mylv      # raid1 (2 legs) -> raid5 on 2 devices
+  sudo lvconvert --stripes 2 /dev/myvg/mylv       # reshape to 2 data stripes (3 devices)
+  sudo lvs -o name,segtype,stripes,sync_percent myvg
   ```
 
 ### 3. Gestire una configurazione LVM RAID
@@ -154,7 +155,7 @@ Monitorare, riparare e gestire l'array RAID e i componenti LVM.
 - **Controllare lo stato**:
   ```bash
   sudo lvs -o+raid_sync_action  # Check LV status and sync
-  cat /proc/mdstat  # Check RAID status
+  sudo lvs -a -o name,segtype,devices,sync_percent,lv_health_status myvg
   ```
 
 - **Creare uno snapshot**:
@@ -206,16 +207,19 @@ echo "Test data" > /mnt/mylv/test.txt
 
 # Check status
 sudo lvs -o+raid_sync_action
-cat /proc/mdstat
+sudo lvs -a -o name,segtype,devices,sync_percent,lv_health_status myvg
 ```
 
 **Output**:
 ```
-  LV   VG   Attr       LSize  ... SyncAction
-  mylv myvg rwi-a-r--- 10.00g ... idle
-Personalities : [raid1]
-md127 : active raid1 sdb[0] sdc[1]
-      10483712 blocks super 1.2 [2/2] [UU]
+  LV   VG   Attr       LSize  ... Cpy%Sync SyncAction
+  mylv myvg rwi-a-r--- 10.00g ... 100.00   idle
+  LV              Type   Devices                           Cpy%Sync Health
+  mylv            raid1  mylv_rimage_0(0),mylv_rimage_1(0) 100.00
+  [mylv_rimage_0] linear /dev/sdb(1)
+  [mylv_rimage_1] linear /dev/sdc(1)
+  [mylv_rmeta_0]  linear /dev/sdb(0)
+  [mylv_rmeta_1]  linear /dev/sdc(0)
 ```
 
 ### Esempio 2: estendere e sostituire un disco
@@ -228,11 +232,11 @@ sudo vgextend myvg /dev/sdd
 sudo lvextend -L +5G /dev/myvg/mylv
 sudo resize2fs /dev/myvg/mylv
 
-# Replace failed disk
-sudo vgreduce myvg /dev/sdb
+# Replace failed disk (sdb died)
 sudo pvcreate /dev/sde
 sudo vgextend myvg /dev/sde
-sudo lvsync /dev/myvg/mylv
+sudo lvconvert --repair myvg/mylv
+sudo vgreduce --removemissing myvg
 ```
 
 ### Esempio 3: creare e ripristinare uno snapshot
@@ -250,14 +254,23 @@ sudo umount /mnt/mylv /mnt/snapshot
 sudo lvconvert --merge /dev/myvg/mysnap
 ```
 
+## La prova: un disco muore
+
+Provato il 2026-11-14 su una VM Ubuntu 24.04 con cinque dischi da 2 GB e senza `mdadm` installato. È stato creato un LV RAID-1, formattato, montato e riempito con un file; poi uno dei suoi dischi è stato staccato a caldo dalla VM accesa.
+
+- `lvs -a -o name,devices,lv_health_status` ha dato il LV come `partial`, con la gamba morta su `[unknown]`. Il file è rimasto leggibile, e scrivibile.
+- `vgreduce myvg /dev/sdb` (la vecchia istruzione di questa guida) si è rifiutato: `Cannot process volume group myvg`.
+- `lvconvert --repair myvg/mylv` ha risposto `Faulty devices in myvg/mylv successfully replaced.`, ricostruendo la gamba su un disco libero del VG; `vgreduce --removemissing myvg` ha tolto il disco morto. Pochi secondi dopo `Cpy%Sync` era `100.00` e il file era intatto.
+- Sullo stesso LV è stata eseguita la conversione da RAID-1 a RAID-5 della sezione 2: `lvconvert --type raid5 -i 2` avverte `--stripes not allowed ... when converting from raid1 to raid5` e produce un RAID-5 a 2 dispositivi; il secondo comando, `--stripes 2`, lo rimodella su 3 dispositivi e fa crescere il LV. Il file è sopravvissuto a entrambe.
+
 ## I comandi, uno per uno
 
 - **pvcreate**: inizializza i dischi come physical volume.
 - **vgcreate/vgextend/vgreduce**: gestiscono i volume group.
-- **lvcreate --type raid*`: crea LV con un livello RAID.
+- **`lvcreate --type raid*`**: crea LV con un livello RAID.
 - **lvextend/resize2fs**: allargano LV e filesystem.
 - **lvconvert**: cambia livello RAID o fa il merge degli snapshot.
-- **lvs/mdstat**: tengono d'occhio lo stato di LVM e del RAID.
+- **lvs**: tiene d'occhio i LV, la sincronizzazione e la salute del RAID (`lvs -a -o+sync_percent,lv_health_status`).
 
 Livelli RAID comuni: `raid1` (mirror), `raid5` (parità singola), `raid6` (doppia parità).
 
@@ -269,11 +282,12 @@ Livelli RAID comuni: `raid1` (mirror), `raid5` (parità singola), `raid6` (doppi
 
 ## Consigli da esperti
 - **Preparazione dei dischi**: usa dischi interi o partizioni, ma verifica con `lsblk`.
-- **Seguire la sincronizzazione del RAID**: usa `watch cat /proc/mdstat` durante il resync.
+- **Seguire la sincronizzazione del RAID**: usa `watch sudo lvs -o name,sync_percent,raid_sync_action` durante il resync.
 - **Snapshot**: riserva abbastanza spazio per le modifiche (per esempio il 10-20% del LV).
 - **Backup automatici**: pianifica gli snapshot con cron:
   ```bash
-  0 0 * * * lvcreate --snapshot -L 2G -n mysnap-$(date +%Y%m%d) /dev/myvg/mylv
+  # root's crontab (sudo crontab -e): % must be written \% in a crontab line
+  0 0 * * * /usr/sbin/lvcreate --snapshot -L 2G -n mysnap-$(date +\%Y\%m\%d) /dev/myvg/mylv
   ```
 - **Abbinarlo a LUKS**: cifra i PV prima di LVM:
   ```bash
@@ -288,11 +302,11 @@ Livelli RAID comuni: `raid1` (mirror), `raid5` (parità singola), `raid6` (doppi
 
 ## Risoluzione dei problemi
 - **«Device not found»**: verifica i dischi con `lsblk` o `fdisk -l`.
-- **Sincronizzazione RAID lenta**: seguila con `cat /proc/mdstat`; pianificala nei momenti di poco I/O.
+- **Sincronizzazione RAID lenta**: seguila con `lvs -o+sync_percent`; pianificala nei momenti di poco I/O.
 - **Snapshot pieno**: aumenta la dimensione dello snapshot o riduci le modifiche.
 - **VG non trovato**: attivalo con `vgchange -a y`.
 - **Problemi di permessi**: lavora come root; controlla i moduli `dm-mod` e `dm-raid` (`lsmod`).
-- **Disco guasto**: sostituiscilo in fretta per non perdere dati; controlla con `mdadm --detail`.
+- **Disco guasto**: `lvs -a -o+lv_health_status` mostra `partial` e la gamba morta come `[unknown]`; i dati restano leggibili. Si ripara con `lvconvert --repair` e `vgreduce --removemissing`, come nell'esempio sopra. Un semplice `vgreduce myvg /dev/sdb` si rifiuta (`Cannot process volume group`), e il comando `lvsync` non esiste.
 
 ## Prossimi passi
 Nei prossimi tutorial vedremo:
@@ -303,7 +317,7 @@ Nei prossimi tutorial vedremo:
 ## Risorse
 - [Documentazione di LVM](https://www.sourceware.org/lvm2/)
 - [Guida a LVM di Ubuntu](https://wiki.ubuntu.com/LVM)
-- [Pagina man di mdadm](https://linux.die.net/man/8/mdadm)
+- [Pagina man di lvmraid(7)](https://man7.org/linux/man-pages/man7/lvmraid.7.html)
 
 ---
 
