@@ -11,8 +11,8 @@ defaultContentLanguageInSubdir: false
 
 languages:
   en:
-    languageName: "English"
-    languageCode: "en-US"
+    label: "English"
+    locale: "en-US"
     weight: 1
     title: "Manzolo Code Notes"
     menu:
@@ -42,16 +42,19 @@ languages:
           - { name: "🧪 Projects", url: "https://manzolo.github.io/manzolo/" }
 
   it:
-    languageName: "Italiano"
-    languageCode: "it-IT"
+    label: "Italiano"
+    locale: "it-IT"
     weight: 2
     title: "Manzolo Code Notes"
-    # NB: Hugo prefixes language menu URLs with /it/, so a "/posts/" entry would
-    # become /it/posts/ (404, since posts are EN-only). The blog stays reachable
-    # from the home hub button (→ /posts/, verbatim) and the language switcher.
+    # NB: Hugo prefixes language menu URLs with /it/: "/posts/" becomes /it/posts/.
+    # Dal 2026-11-14 i post si traducono uno alla volta (nome.it.md accanto a nome.md):
+    # sotto /it/ compaiono solo quelli tradotti, gli altri restano in inglese.
     menu:
       main:
         - { name: Home, url: /it/, weight: 10 }
+        - { name: Post, url: /posts/, weight: 20 }
+        - { name: Categorie, url: /categories/, weight: 30 }
+        - { name: Tag, url: /tags/, weight: 40 }
     params:
       profileMode:
         enabled: false
